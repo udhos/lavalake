@@ -68,5 +68,41 @@ func pullAws(me, cmd, name, vpcID string) error {
 		return fmt.Errorf("more than one security group found")
 	}
 
-	return fmt.Errorf("FIXME WRITEME handle security group")
+	sg := out.SecurityGroups[0]
+
+	gr := group{
+		Description: aws.StringValue(sg.Description),
+	}
+
+	for _, perm := range sg.IpPermissions {
+		r := rule{
+			Protocol:  aws.StringValue(perm.IpProtocol),
+			PortFirst: aws.Int64Value(perm.FromPort),
+			PortLast:  aws.Int64Value(perm.ToPort),
+		}
+		for _, b := range perm.IpRanges {
+			blk := block{
+				Address:     aws.StringValue(b.CidrIp),
+				Description: aws.StringValue(b.Description),
+			}
+			r.Blocks = append(r.Blocks, blk)
+		}
+		for _, b := range perm.Ipv6Ranges {
+			blk := block{
+				Address:     aws.StringValue(b.CidrIpv6),
+				Description: aws.StringValue(b.Description),
+			}
+			r.BlocksV6 = append(r.BlocksV6, blk)
+		}
+		gr.Rules = append(gr.Rules, r)
+	}
+
+	buf, errDump := gr.Dump()
+	if errDump != nil {
+		return errDump
+	}
+
+	fmt.Printf(string(buf))
+
+	return nil
 }
