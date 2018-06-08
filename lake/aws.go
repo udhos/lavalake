@@ -18,8 +18,17 @@ func cloudAws(me, cmd, name string, args []string) error {
 
 	vpcID := args[0]
 
-	//log.Printf("%s: aws name=%s vpc=%s", me, name, vpcID)
+	switch cmd {
+	case "pull":
+		return pullAws(me, cmd, name, vpcID)
+	case "push":
+		return fmt.Errorf("aws FIXME WRITEME: cmd=%s", cmd)
+	}
 
+	return fmt.Errorf("unsupported aws command: %s", cmd)
+}
+
+func pullAws(me, cmd, name, vpcID string) error {
 	cfg, errConf := external.LoadDefaultAWSConfig()
 	if errConf != nil {
 		return errConf
@@ -48,7 +57,16 @@ func cloudAws(me, cmd, name string, args []string) error {
 		return errSend
 	}
 
-	log.Printf("security groups: %d", len(out.SecurityGroups))
+	count := len(out.SecurityGroups)
+	log.Printf("security groups: %d", count)
 
-	return nil
+	if count < 1 {
+		return fmt.Errorf("no security group found")
+	}
+
+	if count > 1 {
+		return fmt.Errorf("more than one security group found")
+	}
+
+	return fmt.Errorf("FIXME WRITEME handle security group")
 }
