@@ -10,8 +10,8 @@ func main() {
 
 	if len(os.Args) < 4 {
 		log.Printf("%s: insufficient arguments", me)
-		log.Printf("usage:   %s pull|push <cloud> name       [args]", me)
-		log.Printf("example: %s pull      aws     allow-http", me)
+		log.Printf("usage:   %s pull|push cloud name       [args]", me)
+		log.Printf("example: %s pull      aws   allow-http", me)
 		os.Exit(1)
 	}
 
@@ -22,9 +22,15 @@ func main() {
 
 	switch {
 	case cloud == "aws":
-		cloudAws(me, cmd, name, args)
+		if err := cloudAws(me, cmd, name, args); err != nil {
+			log.Printf("%s: %v", me, err)
+			os.Exit(3)
+		}
 	case cloud == "azure":
-		cloudAzure(me, cmd, name, args)
+		if err := cloudAzure(me, cmd, name, args); err != nil {
+			log.Printf("%s: %v", me, err)
+			os.Exit(3)
+		}
 	default:
 		log.Printf("%s: cloud not supported: %s", me, cloud)
 		os.Exit(2)
