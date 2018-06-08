@@ -11,7 +11,7 @@ func main() {
 	if len(os.Args) < 4 {
 		log.Printf("%s: insufficient arguments", me)
 		log.Printf("usage:   %s pull|push cloud name       [args]", me)
-		log.Printf("example: %s pull      aws   allow-http", me)
+		log.Printf("example: %s pull      aws   allow-http vpc-000", me)
 		os.Exit(1)
 	}
 
