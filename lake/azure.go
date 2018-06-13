@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
-	//"log"
 	"context"
+	"fmt"
+	"log"
 	"os"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2018-04-01/network"
@@ -25,7 +25,24 @@ func cloudAzure(me, cmd string, args []string) error {
 	return fmt.Errorf("unsupported azure command: %s", cmd)
 }
 
+func showCredentials() {
+	cred("AZURE_SUBSCRIPTION_ID")
+	cred("AZURE_TENANT_ID")
+	cred("AZURE_CLIENT_ID")
+	cred("AZURE_CLIENT_SECRET")
+}
+
+func cred(env string) {
+	value := os.Getenv(env)
+	if env == "AZURE_CLIENT_SECRET" && value != "" {
+		value = "<hidden>"
+	}
+	log.Printf("credentials %s=[%s]", env, value)
+}
+
 func listAzure(me, cmd string) error {
+
+	showCredentials()
 
 	subscription := os.Getenv("AZURE_SUBSCRIPTION_ID")
 	if subscription == "" {
