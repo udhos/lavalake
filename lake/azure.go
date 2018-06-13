@@ -4,8 +4,9 @@ import (
 	"fmt"
 	//"log"
 	"context"
+	"os"
 
-	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2018-05-01/network"
+	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2018-04-01/network"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
 	//"github.com/Azure/go-autorest/autorest/to"
 )
@@ -26,7 +27,12 @@ func cloudAzure(me, cmd string, args []string) error {
 
 func listAzure(me, cmd string) error {
 
-	nsgClient := network.NewVirtualNetworksClient("<subscriptionID>")
+	subscription := os.Getenv("AZURE_SUBSCRIPTION_ID")
+	if subscription == "" {
+		return fmt.Errorf("missing env var AZURE_SUBSCRIPTION_ID")
+	}
+
+	nsgClient := network.NewSecurityGroupsClient(subscription)
 	authorizer, errAuth := auth.NewAuthorizerFromEnvironment()
 
 	if errAuth != nil {
@@ -42,7 +48,7 @@ func listAzure(me, cmd string) error {
 
 	for ; it.NotDone(); it.Next() {
 		nsg := it.Value()
-		fmt.Printf("name=%s id=%s type=%s location=%s\n", unptr(nsg.Name), unptr(nsg.ID), unptr(nsg.Type), unptr(nsg.Location))
+		fmt.Printf("name=%s type=%s location=%s\n", unptr(nsg.Name), unptr(nsg.Type), unptr(nsg.Location))
 	}
 
 	return nil
