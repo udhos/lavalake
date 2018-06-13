@@ -75,6 +75,10 @@ func pullAws(me, cmd, name, vpcID string) error {
 	}
 
 	for _, perm := range sg.IpPermissions {
+		for _, other := range perm.UserIdGroupPairs {
+			log.Printf("unsupported: this group=%s references another group=%s", name, aws.StringValue(other.GroupId))
+		}
+
 		r := rule{
 			Protocol:  aws.StringValue(perm.IpProtocol),
 			PortFirst: aws.Int64Value(perm.FromPort),
