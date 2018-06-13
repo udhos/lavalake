@@ -9,23 +9,64 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 )
 
-func cloudAws(me, cmd, name string, args []string) error {
-
-	if len(args) < 1 {
-		log.Printf("usage: %s %s aws name vpc-id", me, cmd)
-		return fmt.Errorf("missing vpc-id")
-	}
-
-	vpcID := args[0]
+func cloudAws(me, cmd string, args []string) error {
 
 	switch cmd {
+	case "list":
+		var vpcID string
+		if len(args) > 0 {
+			vpcID = args[0]
+		}
+		return listAws(me, cmd, vpcID)
 	case "pull":
+		if len(args) < 2 {
+			log.Printf("usage: %s %s aws name vpc-id", me, cmd)
+			return fmt.Errorf("%s %s aws: missing name vpc-id", me, cmd)
+		}
+		name := args[0]
+		vpcID := args[1]
 		return pullAws(me, cmd, name, vpcID)
 	case "push":
 		return fmt.Errorf("aws FIXME WRITEME: cmd=%s", cmd)
 	}
 
 	return fmt.Errorf("unsupported aws command: %s", cmd)
+}
+
+func listAws(me, cmd, vpcID string) error {
+	cfg, errConf := external.LoadDefaultAWSConfig()
+	if errConf != nil {
+		return errConf
+	}
+
+	svc := ec2.New(cfg)
+
+	input := ec2.DescribeSecurityGroupsInput{}
+
+	if vpcID != "" {
+		filterVpc := ec2.Filter{
+			Name:   aws.String("vpc-id"),
+			Values: []string{vpcID},
+		}
+		input.Filters = []ec2.Filter{filterVpc}
+	}
+
+	req := svc.DescribeSecurityGroupsRequest(&input)
+
+	out, errSend := req.Send()
+	if errSend != nil {
+		return errSend
+	}
+
+	count := len(out.SecurityGroups)
+	log.Printf("security groups: %d", count)
+
+	for _, sg := range out.SecurityGroups {
+		fmt.Printf("vpc-id=%s group-name=%s group-id=%s description=%s\n",
+			aws.StringValue(sg.VpcId), aws.StringValue(sg.GroupName), aws.StringValue(sg.GroupId), aws.StringValue(sg.Description))
+	}
+
+	return nil
 }
 
 func pullAws(me, cmd, name, vpcID string) error {
