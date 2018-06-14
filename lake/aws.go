@@ -112,7 +112,7 @@ func pullAws(me, cmd, name, vpcID string) error {
 	sg := out.SecurityGroups[0]
 
 	gr := group{
-		Description: aws.StringValue(sg.Description),
+		AwsDescription: aws.StringValue(sg.Description),
 	}
 
 	gr.RulesIn = scanPerm(name, sg.IpPermissions)
@@ -122,7 +122,6 @@ func pullAws(me, cmd, name, vpcID string) error {
 	if errDump != nil {
 		return errDump
 	}
-
 	fmt.Printf(string(buf))
 
 	return nil
@@ -144,15 +143,15 @@ func scanPerm(name string, permissions []ec2.IpPermission) []rule {
 		}
 		for _, b := range perm.IpRanges {
 			blk := block{
-				Address:     aws.StringValue(b.CidrIp),
-				Description: aws.StringValue(b.Description),
+				Address:        aws.StringValue(b.CidrIp),
+				AwsDescription: aws.StringValue(b.Description),
 			}
 			r.Blocks = append(r.Blocks, blk)
 		}
 		for _, b := range perm.Ipv6Ranges {
 			blk := block{
-				Address:     aws.StringValue(b.CidrIpv6),
-				Description: aws.StringValue(b.Description),
+				Address:        aws.StringValue(b.CidrIpv6),
+				AwsDescription: aws.StringValue(b.Description),
 			}
 			r.BlocksV6 = append(r.BlocksV6, blk)
 		}

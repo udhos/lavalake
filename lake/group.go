@@ -5,23 +5,28 @@ import (
 )
 
 type group struct {
-	Description string
-	RulesIn     []rule
-	RulesOut    []rule
+	AwsDescription string // !azure
+	RulesIn        []rule
+	RulesOut       []rule
 }
 
 type rule struct {
-	AzureSequence int
-	Protocol      string
-	PortFirst     int64
-	PortLast      int64
-	Blocks        []block
-	BlocksV6      []block
+	AzurePriority              int32    // !aws
+	AzureName                  string   // !aws
+	AzureDeny                  bool     // !aws
+	AzureDescription           string   // !aws
+	AzureSourcePortRanges      []string // !aws
+	AzureSourceAddressPrefixes []string // !aws
+	Protocol                   string
+	PortFirst                  int64
+	PortLast                   int64
+	Blocks                     []block
+	BlocksV6                   []block
 }
 
 type block struct {
-	Address     string
-	Description string
+	Address        string
+	AwsDescription string // !azure
 }
 
 func (g *group) Dump() ([]byte, error) {
