@@ -6,7 +6,8 @@ import (
 
 type group struct {
 	Description string
-	Rules       []rule
+	RulesIn     []rule
+	RulesOut    []rule
 }
 
 type rule struct {

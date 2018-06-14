@@ -115,7 +115,24 @@ func pullAws(me, cmd, name, vpcID string) error {
 		Description: aws.StringValue(sg.Description),
 	}
 
-	for _, perm := range sg.IpPermissions {
+	gr.RulesIn = scanPerm(name, sg.IpPermissions)
+	gr.RulesOut = scanPerm(name, sg.IpPermissionsEgress)
+
+	buf, errDump := gr.Dump()
+	if errDump != nil {
+		return errDump
+	}
+
+	fmt.Printf(string(buf))
+
+	return nil
+}
+
+func scanPerm(name string, permissions []ec2.IpPermission) []rule {
+
+	var rules []rule
+
+	for _, perm := range permissions {
 		for _, other := range perm.UserIdGroupPairs {
 			log.Printf("unsupported: this group=%s references another group=%s", name, aws.StringValue(other.GroupId))
 		}
@@ -139,15 +156,8 @@ func pullAws(me, cmd, name, vpcID string) error {
 			}
 			r.BlocksV6 = append(r.BlocksV6, blk)
 		}
-		gr.Rules = append(gr.Rules, r)
+		rules = append(rules, r)
 	}
 
-	buf, errDump := gr.Dump()
-	if errDump != nil {
-		return errDump
-	}
-
-	fmt.Printf(string(buf))
-
-	return nil
+	return rules
 }
