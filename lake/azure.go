@@ -154,8 +154,18 @@ func visitDstPortRange(gr *group, sr network.SecurityRule, dstPortRange string) 
 
 	prop := sr.SecurityRulePropertiesFormat
 
-	r.AzureDescription = unptr(prop.Description)
 	r.Protocol = string(prop.Protocol)
+	if r.Protocol == "*" {
+		log.Printf("replacing protocol='*' with empty string")
+		r.Protocol = ""
+	}
+
+	var desc string
+	if nil != prop.Description {
+		desc = unptr(prop.Description)
+	}
+
+	r.AzureDescription = desc
 	r.AzurePriority = unptrInt32(prop.Priority)
 	r.AzureDeny = prop.Access == network.SecurityRuleAccessDeny
 
@@ -193,6 +203,14 @@ func visitDstPortRange(gr *group, sr network.SecurityRule, dstPortRange string) 
 }
 
 func visitDstPrefix(r *rule, prefix string) {
+
+	if prefix == "*" {
+		log.Printf("replacing prefix='*' with 0.0.0.0/0 and ::/0")
+		visitDstPrefix(r, "0.0.0.0/0")
+		visitDstPrefix(r, "::/0")
+		return
+	}
+
 	if isPrefixV6(prefix) {
 		r.BlocksV6 = append(r.BlocksV6, block{Address: prefix})
 	} else {

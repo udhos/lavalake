@@ -136,8 +136,14 @@ func scanPerm(name string, permissions []ec2.IpPermission) []rule {
 			log.Printf("unsupported: this group=%s references another group=%s", name, aws.StringValue(other.GroupId))
 		}
 
+		proto := aws.StringValue(perm.IpProtocol)
+		if proto == "-1" {
+			log.Printf("replacing protocol='-1' with empty string")
+			proto = ""
+		}
+
 		r := rule{
-			Protocol:  aws.StringValue(perm.IpProtocol),
+			Protocol:  proto,
 			PortFirst: aws.Int64Value(perm.FromPort),
 			PortLast:  aws.Int64Value(perm.ToPort),
 		}
