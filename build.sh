@@ -11,7 +11,7 @@ gofmt -s -w ./lake
 go tool fix ./lake
 go tool vet ./lake
 
-hash golint && golint ./lake
+hash 2>/dev/null golint && golint ./lake
 
 go test ./lake
 go install ./lake
