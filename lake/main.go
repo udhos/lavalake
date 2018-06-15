@@ -31,6 +31,11 @@ func main() {
 			log.Printf("%s: %v", me, err)
 			os.Exit(3)
 		}
+	case cloud == "openstack":
+		if err := cloudOpenstack(me, cmd, args); err != nil {
+			log.Printf("%s: %v", me, err)
+			os.Exit(3)
+		}
 	default:
 		log.Printf("%s: cloud not supported: %s", me, cloud)
 		os.Exit(2)

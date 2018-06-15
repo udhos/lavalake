@@ -34,16 +34,21 @@ func cloudAzure(me, cmd string, args []string) error {
 	return fmt.Errorf("unsupported azure command: %s", cmd)
 }
 
-func showCredentials() {
+func showCredentialsAzure() {
 	cred("AZURE_SUBSCRIPTION_ID")
 	cred("AZURE_TENANT_ID")
 	cred("AZURE_CLIENT_ID")
-	cred("AZURE_CLIENT_SECRET")
+	credHide("AZURE_CLIENT_SECRET")
 }
 
 func cred(env string) {
 	value := os.Getenv(env)
-	if env == "AZURE_CLIENT_SECRET" && value != "" {
+	log.Printf("credentials %s=[%s]", env, value)
+}
+
+func credHide(env string) {
+	value := os.Getenv(env)
+	if value != "" {
 		value = "<hidden>"
 	}
 	log.Printf("credentials %s=[%s]", env, value)
@@ -51,7 +56,7 @@ func cred(env string) {
 
 func listAzure(me, cmd string) error {
 
-	showCredentials()
+	showCredentialsAzure()
 
 	subscription := os.Getenv("AZURE_SUBSCRIPTION_ID")
 	if subscription == "" {
@@ -96,7 +101,7 @@ func unptrInt32(p *int32) int32 {
 
 func pullAzure(me, cmd, name, resourceGroup string) error {
 
-	showCredentials()
+	showCredentialsAzure()
 
 	subscription := os.Getenv("AZURE_SUBSCRIPTION_ID")
 	if subscription == "" {

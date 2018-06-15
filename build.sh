@@ -6,6 +6,7 @@ go get github.com/jmespath/go-jmespath
 go get github.com/aws/aws-sdk-go-v2
 go get github.com/subosito/gotenv
 go get -d github.com/Azure/azure-sdk-for-go/...
+go get github.com/gophercloud/gophercloud
 
 gofmt -s -w ./lake
 go tool fix ./lake
