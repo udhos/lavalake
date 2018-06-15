@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"io"
 	"log"
 	"os"
 
@@ -39,7 +40,7 @@ func groupFromStdin(caller, name string, gr *group) error {
 	log.Printf("%s: reading group=%s YAML from stdin...", caller, name)
 
 	errDec := dec.Decode(gr)
-	if errDec != nil {
+	if errDec != nil && errDec != io.EOF {
 		return errDec
 	}
 

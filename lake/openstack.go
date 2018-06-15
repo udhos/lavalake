@@ -236,7 +236,7 @@ func updateOpenstack(client *gophercloud.ServiceClient, gr *group, me, name, gro
 		return errUpdateDesc
 	}
 
-	log.Printf("%s: group=%s description updated", me, name)
+	log.Printf("%s: group=%s updated description=[%s]", me, name, gr.Description)
 
 	sg, errGet := groups.Get(client, groupID).Extract()
 	if errGet != nil {
