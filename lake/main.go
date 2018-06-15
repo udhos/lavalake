@@ -22,17 +22,17 @@ func main() {
 
 	switch {
 	case cloud == "aws":
-		if err := cloudAws(me, cmd, args); err != nil {
+		if err := cloudAws(me, cmd, cloud, args); err != nil {
 			log.Printf("%s: %v", me, err)
 			os.Exit(3)
 		}
 	case cloud == "azure":
-		if err := cloudAzure(me, cmd, args); err != nil {
+		if err := cloudAzure(me, cmd, cloud, args); err != nil {
 			log.Printf("%s: %v", me, err)
 			os.Exit(3)
 		}
 	case cloud == "openstack":
-		if err := cloudOpenstack(me, cmd, args); err != nil {
+		if err := cloudOpenstack(me, cmd, cloud, args); err != nil {
 			log.Printf("%s: %v", me, err)
 			os.Exit(3)
 		}

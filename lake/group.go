@@ -1,6 +1,10 @@
 package main
 
 import (
+	"bufio"
+	"log"
+	"os"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -27,6 +31,21 @@ type rule struct {
 type block struct {
 	Address        string
 	AwsDescription string // !azure
+}
+
+func groupFromStdin(caller, name string, gr *group) error {
+	dec := yaml.NewDecoder(bufio.NewReader(os.Stdin))
+
+	log.Printf("%s: reading group=%s YAML from stdin...", caller, name)
+
+	errDec := dec.Decode(gr)
+	if errDec != nil {
+		return errDec
+	}
+
+	log.Printf("%s: reading group=%s YAML from stdin...done", caller, name)
+
+	return nil
 }
 
 func (g *group) Dump() ([]byte, error) {

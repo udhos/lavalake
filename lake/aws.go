@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 )
 
-func cloudAws(me, cmd string, args []string) error {
+func cloudAws(me, cmd, cloud string, args []string) error {
 
 	switch cmd {
 	case "list":
@@ -20,17 +20,17 @@ func cloudAws(me, cmd string, args []string) error {
 		return listAws(me, cmd, vpcID)
 	case "pull":
 		if len(args) < 2 {
-			log.Printf("usage: %s %s aws name vpc-id", me, cmd)
-			return fmt.Errorf("%s %s aws: missing name vpc-id", me, cmd)
+			log.Printf("usage: %s %s %s name vpc-id", me, cmd, cloud)
+			return fmt.Errorf("%s %s %s: missing name vpc-id", me, cmd, cloud)
 		}
 		name := args[0]
 		vpcID := args[1]
 		return pullAws(me, cmd, name, vpcID)
 	case "push":
-		return fmt.Errorf("aws FIXME WRITEME: cmd=%s", cmd)
+		return fmt.Errorf("%s FIXME WRITEME: cmd=%s", cloud, cmd)
 	}
 
-	return fmt.Errorf("unsupported aws command: %s", cmd)
+	return fmt.Errorf("unsupported %s command: %s", cloud, cmd)
 }
 
 func listAws(me, cmd, vpcID string) error {

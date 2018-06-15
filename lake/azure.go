@@ -14,24 +14,24 @@ import (
 	//"github.com/Azure/go-autorest/autorest/to"
 )
 
-func cloudAzure(me, cmd string, args []string) error {
+func cloudAzure(me, cmd, cloud string, args []string) error {
 
 	switch cmd {
 	case "list":
 		return listAzure(me, cmd)
 	case "pull":
 		if len(args) < 2 {
-			log.Printf("usage: %s %s azure name resource-group", me, cmd)
-			return fmt.Errorf("%s %s azure: missing name resource-group", me, cmd)
+			log.Printf("usage: %s %s %s name resource-group", me, cmd, cloud)
+			return fmt.Errorf("%s %s %s: missing name resource-group", me, cmd, cloud)
 		}
 		name := args[0]
 		resourceGroup := args[1]
 		return pullAzure(me, cmd, name, resourceGroup)
 	case "push":
-		return fmt.Errorf("azure FIXME WRITEME: cmd=%s", cmd)
+		return fmt.Errorf("%s FIXME WRITEME: cmd=%s", cloud, cmd)
 	}
 
-	return fmt.Errorf("unsupported azure command: %s", cmd)
+	return fmt.Errorf("unsupported %s command: %s", cloud, cmd)
 }
 
 func showCredentialsAzure() {
