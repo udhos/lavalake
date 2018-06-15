@@ -207,6 +207,7 @@ func visitDstPortRange(gr *group, sr network.SecurityRule, dstPortRange string) 
 	}
 }
 
+// expand magic prefix to both IPv6 and IPv4
 func visitDstPrefix(r *rule, prefix, magicDefault string) {
 
 	if prefix == magicDefault {
@@ -221,6 +222,33 @@ func visitDstPrefix(r *rule, prefix, magicDefault string) {
 	} else {
 		r.Blocks = append(r.Blocks, block{Address: prefix})
 	}
+}
+
+// expand magic prefix to IPv6 or IPv4
+func visitDstPrefixV(r *rule, prefix, magicDefault string, isV6 bool) {
+
+	if isV6 {
+		// IPv6
+		if prefix == magicDefault {
+			log.Printf("replacing magicDefault='%s' with ::/0", magicDefault)
+			visitDstPrefixV(r, "::/0", magicDefault, isV6)
+			return
+		}
+
+		r.BlocksV6 = append(r.BlocksV6, block{Address: prefix})
+
+		return
+	}
+
+	// IPv4
+
+	if prefix == magicDefault {
+		log.Printf("replacing magicDefault='%s' with 0.0.0.0/0", magicDefault)
+		visitDstPrefixV(r, "0.0.0.0/0", magicDefault, isV6)
+		return
+	}
+
+	r.Blocks = append(r.Blocks, block{Address: prefix})
 }
 
 func isPrefixV6(prefix string) bool {

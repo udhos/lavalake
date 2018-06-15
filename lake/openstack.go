@@ -141,7 +141,9 @@ func pullOpenstack(me, cmd, name string) error {
 			}
 		}
 
-		visitDstPrefix(&r, sgr.RemoteIPPrefix, "")
+		isPrefixV6 := sgr.EtherType == "IPv6"
+
+		visitDstPrefixV(&r, sgr.RemoteIPPrefix, "", isPrefixV6)
 
 		if sgr.Direction == "ingress" {
 			gr.RulesIn = append(gr.RulesIn, r)
