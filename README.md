@@ -2,6 +2,11 @@
 
 Manage security groups uniformly across multiple cloud providers.
 
+- Fetch a security group from a cloud provider and save it as YAML file.
+- Can edit the file locally then send it back to the cloud provider.
+- Can write the security group rules to cloud provider as another group.
+- Can send the security group to another cloud provider, unless the group rules use features unsupported by target provider.
+
 Install
 =======
 
@@ -16,13 +21,13 @@ List security groups:
 
     lake list openstack
 
-Save security group 'group1' into file 'group1':
+Save security group 'group1' into file 'group1.yaml':
 
-    lake pull openstack group1 > group1
+    lake pull openstack group1 > group1.yaml
 
-Create security group 'group2' from file 'group1':
+Create/update security group 'group2' from file 'group1.yaml':
 
-    lake push openstack group2 < group1
+    lake push openstack group2 < group1.yaml
 
 Examples - AWS
 ==============
@@ -31,13 +36,13 @@ List security groups:
 
     lake list aws
 
-Save security group 'group1' into file 'group1':
+Save security group 'group1' into file 'group1.yaml':
 
-    lake pull aws group1 vpc-id > group1
+    lake pull aws group1 vpc-id > group1.yaml
 
-Create security group 'group2' from file 'group1':
+Create/update security group 'group2' from file 'group1.yaml':
 
-    lake push aws group2 vpc-id < group1
+    lake push aws group2 vpc-id < group1.yaml
 
 Examples - Azure
 ================
@@ -46,13 +51,13 @@ List security groups:
 
     lake list azure
 
-Save security group 'group1' into file 'group1':
+Save security group 'group1' into file 'group1.yaml':
 
-    lake pull azure group1 resource-group-name > group1
+    lake pull azure group1 resource-group-name > group1.yaml
 
-Create security group 'group2' from file 'group1':
+Create/update security group 'group2' from file 'group1.yaml':
 
-    lake push azure group2 resource-group-name < group1
+    lake push azure group2 resource-group-name < group1.yaml
 
 
 -x-
