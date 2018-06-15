@@ -254,39 +254,45 @@ func updateOpenstack(client *gophercloud.ServiceClient, gr *group, me, name, gro
 
 	log.Printf("%s: group=%s deleting %d rules...done", me, name, len(sg.Rules))
 
-	log.Printf("%s: group=%s creating %d rules...", me, name, len(gr.RulesIn)+len(gr.RulesOut))
+	log.Printf("%s: group=%s creating new rules...", me, name)
 
-	if errIn := scanRulesOpenstack(client, gr.RulesIn, groupID, rules.DirIngress); errIn != nil {
+	countIn, errIn := scanRulesOpenstack(client, gr.RulesIn, groupID, rules.DirIngress)
+	if errIn != nil {
 		return errIn
 	}
-	if errOut := scanRulesOpenstack(client, gr.RulesOut, groupID, rules.DirEgress); errOut != nil {
+	countOut, errOut := scanRulesOpenstack(client, gr.RulesOut, groupID, rules.DirEgress)
+	if errOut != nil {
 		return errOut
 	}
 
-	log.Printf("%s: group=%s creating %d rules...done", me, name, len(gr.RulesIn)+len(gr.RulesOut))
+	log.Printf("%s: group=%s creating new rules...done (%d rules)", me, name, countIn+countOut)
 
 	return nil
 }
 
-func scanRulesOpenstack(client *gophercloud.ServiceClient, ruleList []rule, groupID string, direction rules.RuleDirection) error {
+func scanRulesOpenstack(client *gophercloud.ServiceClient, ruleList []rule, groupID string, direction rules.RuleDirection) (int, error) {
+	var count int
+
 	for _, r := range ruleList {
 		for _, b := range r.Blocks {
 			createOpts := createRuleOpenstack(r, groupID, b.Address, rules.EtherType4, direction)
 			_, errCreate := rules.Create(client, createOpts).Extract()
 			if errCreate != nil {
-				return errCreate
+				return count, errCreate
 			}
+			count++
 		}
 		for _, b := range r.BlocksV6 {
 			createOpts := createRuleOpenstack(r, groupID, b.Address, rules.EtherType6, direction)
 			_, errCreate := rules.Create(client, createOpts).Extract()
 			if errCreate != nil {
-				return errCreate
+				return count, errCreate
 			}
+			count++
 		}
 	}
 
-	return nil
+	return count, nil
 }
 
 func createRuleOpenstack(r rule, groupID, prefix string, etherType rules.RuleEtherType, direction rules.RuleDirection) rules.CreateOpts {
