@@ -37,7 +37,7 @@ Examples - AWS
 
 List security groups:
 
-    lake list aws
+    lake list aws [vpc-id]
 
 Save security group 'group1' into file 'group1.yaml':
 
