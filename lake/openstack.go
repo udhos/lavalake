@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	//"log"
 	"os"
 
 	"github.com/gophercloud/gophercloud"
@@ -27,6 +27,13 @@ func cloudOpenstack(me, cmd string, args []string) error {
 
 func showCredentialsOpenstack() {
 	cred("OS_REGION_NAME")
+	cred("OS_TENANT_ID")
+	cred("OS_IDENTITY_API_VERSION")
+	cred("OS_AUTH_URL")
+	cred("OS_TENANT_NAME")
+	cred("OS_ENDPOINT_TYPE")
+	cred("OS_USERNAME")
+	credHide("OS_PASSWORD")
 }
 
 func listOpenstack(me, cmd string) error {
@@ -59,7 +66,7 @@ func listOpenstack(me, cmd string) error {
 	// https://godoc.org/github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups#SecGroup
 
 	for _, gr := range allGroups {
-		log.Printf("name=%s id=%s project=%s description=%s", gr.Name, gr.ID, gr.ProjectID, gr.Description)
+		fmt.Printf("name=%s id=%s project=%s description=%s\n", gr.Name, gr.ID, gr.ProjectID, gr.Description)
 	}
 
 	return nil
