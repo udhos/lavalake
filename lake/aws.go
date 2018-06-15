@@ -27,7 +27,13 @@ func cloudAws(me, cmd, cloud string, args []string) error {
 		vpcID := args[1]
 		return pullAws(me, cmd, name, vpcID)
 	case "push":
-		return fmt.Errorf("%s FIXME WRITEME: cmd=%s", cloud, cmd)
+		if len(args) < 2 {
+			log.Printf("usage: %s %s %s name vpc-id", me, cmd, cloud)
+			return fmt.Errorf("%s %s %s: missing name vpc-id", me, cmd, cloud)
+		}
+		name := args[0]
+		vpcID := args[1]
+		return pushAws(me, cmd, name, vpcID)
 	}
 
 	return fmt.Errorf("unsupported %s command: %s", cloud, cmd)
@@ -165,4 +171,66 @@ func scanPerm(name string, permissions []ec2.IpPermission) []rule {
 	}
 
 	return rules
+}
+
+func pushAws(me, cmd, name, vpcID string) error {
+
+	var gr group
+
+	if errLoad := groupFromStdin(me, name, &gr); errLoad != nil {
+		return errLoad
+	}
+
+	cfg, errConf := external.LoadDefaultAWSConfig()
+	if errConf != nil {
+		return errConf
+	}
+
+	svc := ec2.New(cfg)
+
+	filterName := ec2.Filter{
+		Name:   aws.String("group-name"),
+		Values: []string{name},
+	}
+
+	filterVpc := ec2.Filter{
+		Name:   aws.String("vpc-id"),
+		Values: []string{vpcID},
+	}
+
+	input := ec2.DescribeSecurityGroupsInput{
+		Filters: []ec2.Filter{filterName, filterVpc},
+	}
+
+	req := svc.DescribeSecurityGroupsRequest(&input)
+
+	out, errSend := req.Send()
+	if errSend != nil {
+		return errSend
+	}
+
+	count := len(out.SecurityGroups)
+
+	if count > 1 {
+		return fmt.Errorf("more than one security group found")
+	}
+
+	if count < 1 {
+		log.Printf("%s: group=%s vpc-id=%s not found", me, name, vpcID)
+		return createAws(name, vpcID)
+	}
+
+	sg := out.SecurityGroups[0]
+
+	return updateAws(name, aws.StringValue(sg.GroupId))
+}
+
+func updateAws(name, groupID string) error {
+	log.Printf("updateAws: FIXME WRITEME group=%s group-id=%s", name, groupID)
+	return nil
+}
+
+func createAws(name, vpcID string) error {
+	log.Printf("createAws: FIXME WRITEME group=%s vpc-id=%s", name, vpcID)
+	return nil
 }
