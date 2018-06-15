@@ -217,20 +217,38 @@ func pushAws(me, cmd, name, vpcID string) error {
 
 	if count < 1 {
 		log.Printf("%s: group=%s vpc-id=%s not found", me, name, vpcID)
-		return createAws(name, vpcID)
+		return createAws(svc, name, vpcID, gr.Description)
 	}
 
 	sg := out.SecurityGroups[0]
 
-	return updateAws(name, aws.StringValue(sg.GroupId))
+	return updateAws(svc, name, aws.StringValue(sg.GroupId))
 }
 
-func updateAws(name, groupID string) error {
+func updateAws(svc *ec2.EC2, name, groupID string) error {
+	log.Printf("updating existing group=%s group-id=%s", name, groupID)
 	log.Printf("updateAws: FIXME WRITEME group=%s group-id=%s", name, groupID)
 	return nil
 }
 
-func createAws(name, vpcID string) error {
-	log.Printf("createAws: FIXME WRITEME group=%s vpc-id=%s", name, vpcID)
-	return nil
+func createAws(svc *ec2.EC2, name, vpcID, description string) error {
+	log.Printf("creating new group=%s vpc-id=%s", name, vpcID)
+
+	input := ec2.CreateSecurityGroupInput{
+		Description: aws.String(description),
+		GroupName:   aws.String(name),
+		VpcId:       aws.String(vpcID),
+	}
+
+	req := svc.CreateSecurityGroupRequest(&input)
+	resp, errCreate := req.Send()
+	if errCreate != nil {
+		return errCreate
+	}
+
+	groupID := aws.StringValue(resp.GroupId)
+
+	log.Printf("created new group=%s vpc-id=%s: group-id=%s", name, vpcID, groupID)
+
+	return updateAws(svc, name, groupID)
 }
