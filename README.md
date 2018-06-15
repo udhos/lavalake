@@ -1,3 +1,6 @@
+[![license](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/udhos/lavalake/blob/master/LICENSE)
+[![Go Report Card - lavalake](https://goreportcard.com/badge/github.com/udhos/lavalake)](https://goreportcard.com/report/github.com/udhos/lavalake)
+
 # lavalake
 
 Manage security groups uniformly across multiple cloud providers.
