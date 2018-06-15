@@ -194,10 +194,10 @@ func visitDstPortRange(gr *group, sr network.SecurityRule, dstPortRange string) 
 	}
 
 	if nil != prop.DestinationAddressPrefix {
-		visitDstPrefix(&r, unptr(prop.DestinationAddressPrefix))
+		visitDstPrefix(&r, unptr(prop.DestinationAddressPrefix), "*")
 	}
 	for _, dst := range *prop.DestinationAddressPrefixes {
-		visitDstPrefix(&r, dst)
+		visitDstPrefix(&r, dst, "*")
 	}
 
 	if prop.Direction == network.SecurityRuleDirectionInbound {
@@ -207,12 +207,12 @@ func visitDstPortRange(gr *group, sr network.SecurityRule, dstPortRange string) 
 	}
 }
 
-func visitDstPrefix(r *rule, prefix string) {
+func visitDstPrefix(r *rule, prefix, magicDefault string) {
 
-	if prefix == "*" {
-		log.Printf("replacing prefix='*' with 0.0.0.0/0 and ::/0")
-		visitDstPrefix(r, "0.0.0.0/0")
-		visitDstPrefix(r, "::/0")
+	if prefix == magicDefault {
+		log.Printf("replacing magicDefault='%s' with 0.0.0.0/0 and ::/0", magicDefault)
+		visitDstPrefix(r, "0.0.0.0/0", magicDefault)
+		visitDstPrefix(r, "::/0", magicDefault)
 		return
 	}
 

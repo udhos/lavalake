@@ -112,7 +112,7 @@ func pullAws(me, cmd, name, vpcID string) error {
 	sg := out.SecurityGroups[0]
 
 	gr := group{
-		AwsDescription: aws.StringValue(sg.Description),
+		Description: aws.StringValue(sg.Description),
 	}
 
 	gr.RulesIn = scanPerm(name, sg.IpPermissions)

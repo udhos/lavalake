@@ -5,9 +5,9 @@ import (
 )
 
 type group struct {
-	AwsDescription string // !azure
-	RulesIn        []rule
-	RulesOut       []rule
+	Description string // !azure
+	RulesIn     []rule
+	RulesOut    []rule
 }
 
 type rule struct {
