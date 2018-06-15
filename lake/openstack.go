@@ -135,6 +135,10 @@ func pullOpenstack(me, cmd, name string) error {
 
 		if sgr.RemoteGroupID != "" {
 			log.Printf("unsupported: RemoteGroupID=[%s]", sgr.RemoteGroupID)
+
+			if sgr.RemoteIPPrefix == "" {
+				continue // do not install default prefix by accident
+			}
 		}
 
 		visitDstPrefix(&r, sgr.RemoteIPPrefix, "")
