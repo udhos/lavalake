@@ -1,5 +1,7 @@
 # lavalake
 
+Manage security groups uniformly across multiple cloud providers.
+
 Install
 =======
 
