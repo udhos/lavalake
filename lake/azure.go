@@ -28,13 +28,14 @@ func cloudAzure(me, cmd, cloud string, args []string) error {
 		resourceGroup := args[1]
 		return pullAzure(me, cmd, name, resourceGroup)
 	case "push":
-		if len(args) < 2 {
-			log.Printf("usage: %s %s %s name resource-group", me, cmd, cloud)
-			return fmt.Errorf("%s %s %s: missing name resource-group", me, cmd, cloud)
+		if len(args) < 3 {
+			log.Printf("usage: %s %s %s name resource-group location", me, cmd, cloud)
+			return fmt.Errorf("%s %s %s: missing name resource-group location", me, cmd, cloud)
 		}
 		name := args[0]
 		resourceGroup := args[1]
-		return pushAzure(me, cmd, name, resourceGroup)
+		location := args[2]
+		return pushAzure(me, cmd, name, resourceGroup, location)
 	}
 
 	return fmt.Errorf("unsupported %s command: %s", cloud, cmd)
@@ -262,7 +263,7 @@ func isPrefixV6(prefix string) bool {
 	return addr.To4() == nil
 }
 
-func pushAzure(me, cmd, name, resourceGroup string) error {
+func pushAzure(me, cmd, name, resourceGroup, location string) error {
 
 	var gr group
 
@@ -289,19 +290,19 @@ func pushAzure(me, cmd, name, resourceGroup string) error {
 	sg, errGet := nsgClient.Get(context.Background(), resourceGroup, name, "")
 	if errGet != nil {
 		log.Printf("group=%s not found: %v", name, errGet)
-		return createAzure(nsgClient, name, resourceGroup, &gr)
+		return createAzure(nsgClient, name, resourceGroup, &gr, location)
 	}
 
-	return updateAzure(nsgClient, name, resourceGroup, &gr, unptr(sg.ID))
+	return updateAzure(nsgClient, name, resourceGroup, &gr, unptr(sg.ID), location)
 }
 
-func createAzure(nsgClient network.SecurityGroupsClient, name, resourceGroup string, gr *group) error {
-	return updateAzure(nsgClient, name, resourceGroup, gr, "")
+func createAzure(nsgClient network.SecurityGroupsClient, name, resourceGroup string, gr *group, location string) error {
+	return updateAzure(nsgClient, name, resourceGroup, gr, "", location)
 }
 
-func updateAzure(nsgClient network.SecurityGroupsClient, name, resourceGroup string, gr *group, groupID string) error {
+func updateAzure(nsgClient network.SecurityGroupsClient, name, resourceGroup string, gr *group, groupID, location string) error {
 
-	nsg := networkSecurityGroupFromGroup(gr)
+	nsg := networkSecurityGroupFromGroup(gr, location)
 
 	nsg.ID = to.StringPtr(groupID)
 	nsg.Name = to.StringPtr(name)
@@ -319,7 +320,7 @@ func updateAzure(nsgClient network.SecurityGroupsClient, name, resourceGroup str
 	return nil
 }
 
-func networkSecurityGroupFromGroup(gr *group) network.SecurityGroup {
+func networkSecurityGroupFromGroup(gr *group, location string) network.SecurityGroup {
 
 	list := []network.SecurityRule{}
 
@@ -329,6 +330,7 @@ func networkSecurityGroupFromGroup(gr *group) network.SecurityGroup {
 
 	sg := network.SecurityGroup{
 		SecurityGroupPropertiesFormat: format,
+		Location:                      to.StringPtr(location),
 	}
 
 	for _, r := range gr.RulesIn {
@@ -348,14 +350,17 @@ func securityRuleFromRule(r rule, direction network.SecurityRuleDirection) netwo
 
 	dstPortRanges := []string{fmt.Sprintf("%d-%d", r.PortFirst, r.PortLast)}
 
+	dstPrefixes := []string{}
+
 	format := &network.SecurityRulePropertiesFormat{
-		Description:           to.StringPtr(r.AzureDescription),
-		Protocol:              network.SecurityRuleProtocol(r.Protocol),
-		Direction:             direction,
-		DestinationPortRanges: &dstPortRanges,
-		SourcePortRanges:      &r.AzureSourcePortRanges,
-		SourceAddressPrefixes: &r.AzureSourceAddressPrefixes,
-		Priority:              to.Int32Ptr(r.AzurePriority),
+		Description:                to.StringPtr(r.AzureDescription),
+		Protocol:                   network.SecurityRuleProtocol(r.Protocol),
+		Direction:                  direction,
+		DestinationPortRanges:      &dstPortRanges,
+		SourcePortRanges:           &r.AzureSourcePortRanges,
+		SourceAddressPrefixes:      &r.AzureSourceAddressPrefixes,
+		Priority:                   to.Int32Ptr(r.AzurePriority),
+		DestinationAddressPrefixes: &dstPrefixes,
 	}
 
 	if r.AzureDeny {
@@ -370,11 +375,11 @@ func securityRuleFromRule(r rule, direction network.SecurityRuleDirection) netwo
 	}
 
 	for _, b := range r.Blocks {
-		*format.DestinationAddressPrefixes = append(*format.DestinationAddressPrefixes, b.Address)
+		dstPrefixes = append(dstPrefixes, b.Address)
 	}
 
 	for _, b := range r.BlocksV6 {
-		*format.DestinationAddressPrefixes = append(*format.DestinationAddressPrefixes, b.Address)
+		dstPrefixes = append(dstPrefixes, b.Address)
 	}
 
 	return sr

@@ -60,7 +60,7 @@ Save security group 'group1' into file 'group1.yaml':
 
 Create/update security group 'group2' from file 'group1.yaml':
 
-    lake push azure group2 resource-group-name < group1.yaml
+    lake push azure group2 resource-group-name location < group1.yaml
 
 
 -x-
