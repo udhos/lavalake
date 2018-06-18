@@ -12,7 +12,8 @@ func main() {
 		log.Printf("%s: insufficient arguments", me)
 		log.Printf("usage:   %s list|pull|push cloud [args]", me)
 		log.Printf("example: %s list           aws", me)
-		log.Printf("example: %s pull           aws   allow-http vpc-000", me)
+		log.Printf("example: %s pull           aws   allow-http vpc-000 > allow-http.yaml", me)
+		log.Printf("example: %s push           aws   allow-http vpc-000 < allow-http.yaml", me)
 		os.Exit(1)
 	}
 
