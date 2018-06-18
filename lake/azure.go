@@ -388,23 +388,26 @@ func securityRuleFromRule(r rule, direction network.SecurityRuleDirection) netwo
 		SecurityRulePropertiesFormat: format,
 	}
 
-	getDstPrefixesAzure(dstPrefixes, r.Blocks)
-	getDstPrefixesAzure(dstPrefixes, r.BlocksV6)
+	getDstPrefixesAzure(&dstPrefixes, r.Blocks)
+	getDstPrefixesAzure(&dstPrefixes, r.BlocksV6)
+
+	//log.Printf("DestinationAddressPrefixes = %v", *sr.SecurityRulePropertiesFormat.DestinationAddressPrefixes)
 
 	return sr
 }
 
-func getDstPrefixesAzure(dstPrefixes []string, blocks []block) {
+func getDstPrefixesAzure(dstPrefixes *[]string, blocks []block) {
 	for _, b := range blocks {
 		address := b.Address
+		log.Printf("getDstPrefixesAzure: address=%s azurePush=[%s]", address, b.AzurePush)
 		if b.AzurePush == "<skip>" {
-			log.Printf("dst address=%s azurePush=[%s] - skipping address", address, b.AzurePush)
+			//log.Printf("dst address=%s azurePush=[%s] - skipping address", address, b.AzurePush)
 			continue // don't push
 		}
 		if b.AzurePush != "" {
-			log.Printf("dst address=%s azurePush=[%s] - using azurePush", address, b.AzurePush)
+			//log.Printf("dst address=%s azurePush=[%s] - using azurePush", address, b.AzurePush)
 			address = b.AzurePush
 		}
-		dstPrefixes = append(dstPrefixes, address)
+		*dstPrefixes = append(*dstPrefixes, address)
 	}
 }
