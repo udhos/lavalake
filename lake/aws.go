@@ -246,7 +246,6 @@ func updateAws(svc *ec2.EC2, gr *group, name, vpcID, groupID string) error {
 	}
 
 	count := len(out.SecurityGroups)
-	log.Printf("security groups: %d", count)
 
 	if count < 1 {
 		return fmt.Errorf("no security group found")
@@ -262,17 +261,19 @@ func updateAws(svc *ec2.EC2, gr *group, name, vpcID, groupID string) error {
 		return fmt.Errorf("wrong groupID")
 	}
 
-	log.Printf("group=%s deleting existing %d ingress rules...", name, len(sg.IpPermissions))
+	countInDel := countBlocks(sg.IpPermissions)
+	log.Printf("group=%s deleting existing %d ingress rules...", name, countInDel)
 	if errDelIn := delPermInAws(svc, sg); errDelIn != nil {
 		return errDelIn
 	}
-	log.Printf("group=%s deleting existing %d ingress rules...done", name, len(sg.IpPermissions))
+	log.Printf("group=%s deleting existing %d ingress rules...done", name, countInDel)
 
-	log.Printf("group=%s deleting existing %d egress rules...", name, len(sg.IpPermissionsEgress))
+	countOutDel := countBlocks(sg.IpPermissionsEgress)
+	log.Printf("group=%s deleting existing %d egress rules...", name, countOutDel)
 	if errDelIn := delPermOutAws(svc, sg); errDelIn != nil {
 		return errDelIn
 	}
-	log.Printf("group=%s deleting existing %d egress rules...done", name, len(sg.IpPermissionsEgress))
+	log.Printf("group=%s deleting existing %d egress rules...done", name, countOutDel)
 
 	log.Printf("group=%s creating new rules...", name)
 
@@ -318,6 +319,14 @@ func delPermOutAws(svc *ec2.EC2, sg ec2.SecurityGroup) error {
 	req := svc.RevokeSecurityGroupEgressRequest(&input)
 	_, err := req.Send()
 	return err
+}
+
+func countBlocks(permissions []ec2.IpPermission) int {
+	var count int
+	for _, perm := range permissions {
+		count += len(perm.IpRanges) + len(perm.Ipv6Ranges)
+	}
+	return count
 }
 
 func permFromRules(ruleList []rule) ([]ec2.IpPermission, int) {
