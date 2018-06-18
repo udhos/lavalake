@@ -11,7 +11,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2018-04-01/network"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
-	//"github.com/Azure/go-autorest/autorest/to"
+	"github.com/Azure/go-autorest/autorest/to"
 )
 
 func cloudAzure(me, cmd, cloud string, args []string) error {
@@ -28,7 +28,13 @@ func cloudAzure(me, cmd, cloud string, args []string) error {
 		resourceGroup := args[1]
 		return pullAzure(me, cmd, name, resourceGroup)
 	case "push":
-		return fmt.Errorf("%s FIXME WRITEME: cmd=%s", cloud, cmd)
+		if len(args) < 2 {
+			log.Printf("usage: %s %s %s name resource-group", me, cmd, cloud)
+			return fmt.Errorf("%s %s %s: missing name resource-group", me, cmd, cloud)
+		}
+		name := args[0]
+		resourceGroup := args[1]
+		return pushAzure(me, cmd, name, resourceGroup)
 	}
 
 	return fmt.Errorf("unsupported %s command: %s", cloud, cmd)
@@ -254,4 +260,122 @@ func isPrefixV6(prefix string) bool {
 		return false
 	}
 	return addr.To4() == nil
+}
+
+func pushAzure(me, cmd, name, resourceGroup string) error {
+
+	var gr group
+
+	if errLoad := groupFromStdin(me, name, &gr); errLoad != nil {
+		return errLoad
+	}
+
+	showCredentialsAzure()
+
+	subscription := os.Getenv("AZURE_SUBSCRIPTION_ID")
+	if subscription == "" {
+		return fmt.Errorf("missing env var AZURE_SUBSCRIPTION_ID")
+	}
+
+	nsgClient := network.NewSecurityGroupsClient(subscription)
+	authorizer, errAuth := auth.NewAuthorizerFromEnvironment()
+
+	if errAuth != nil {
+		return errAuth
+	}
+
+	nsgClient.Authorizer = authorizer
+
+	sg, errGet := nsgClient.Get(context.Background(), resourceGroup, name, "")
+	if errGet != nil {
+		log.Printf("group=%s not found: %v", name, errGet)
+		return createAzure(nsgClient, name, resourceGroup, &gr)
+	}
+
+	return updateAzure(nsgClient, name, resourceGroup, &gr, unptr(sg.ID))
+}
+
+func createAzure(nsgClient network.SecurityGroupsClient, name, resourceGroup string, gr *group) error {
+	return updateAzure(nsgClient, name, resourceGroup, gr, "")
+}
+
+func updateAzure(nsgClient network.SecurityGroupsClient, name, resourceGroup string, gr *group, groupID string) error {
+
+	nsg := networkSecurityGroupFromGroup(gr)
+
+	nsg.ID = to.StringPtr(groupID)
+	nsg.Name = to.StringPtr(name)
+
+	future, errUpdate := nsgClient.CreateOrUpdate(context.Background(), resourceGroup, name, nsg)
+	if errUpdate != nil {
+		return errUpdate
+	}
+
+	_, errResult := future.Result(nsgClient)
+	if errResult != nil {
+		return errResult
+	}
+
+	return nil
+}
+
+func networkSecurityGroupFromGroup(gr *group) network.SecurityGroup {
+
+	list := []network.SecurityRule{}
+
+	format := &network.SecurityGroupPropertiesFormat{
+		SecurityRules: &list,
+	}
+
+	sg := network.SecurityGroup{
+		SecurityGroupPropertiesFormat: format,
+	}
+
+	for _, r := range gr.RulesIn {
+		sr := securityRuleFromRule(r, network.SecurityRuleDirectionInbound)
+		list = append(list, sr)
+	}
+
+	for _, r := range gr.RulesOut {
+		sr := securityRuleFromRule(r, network.SecurityRuleDirectionOutbound)
+		list = append(list, sr)
+	}
+
+	return sg
+}
+
+func securityRuleFromRule(r rule, direction network.SecurityRuleDirection) network.SecurityRule {
+
+	dstPortRanges := []string{fmt.Sprintf("%d-%d", r.PortFirst, r.PortLast)}
+
+	format := &network.SecurityRulePropertiesFormat{
+		Description:           to.StringPtr(r.AzureDescription),
+		Protocol:              network.SecurityRuleProtocol(r.Protocol),
+		Direction:             direction,
+		DestinationPortRanges: &dstPortRanges,
+		SourcePortRanges:      &r.AzureSourcePortRanges,
+		SourceAddressPrefixes: &r.AzureSourceAddressPrefixes,
+		Priority:              to.Int32Ptr(r.AzurePriority),
+	}
+
+	if r.AzureDeny {
+		format.Access = network.SecurityRuleAccessDeny
+	} else {
+		format.Access = network.SecurityRuleAccessAllow
+	}
+
+	sr := network.SecurityRule{
+		Name: to.StringPtr(r.AzureName),
+		SecurityRulePropertiesFormat: format,
+	}
+
+	for _, b := range r.Blocks {
+		*format.DestinationAddressPrefixes = append(*format.DestinationAddressPrefixes, b.Address)
+	}
+
+	for _, b := range r.BlocksV6 {
+		*format.DestinationAddressPrefixes = append(*format.DestinationAddressPrefixes, b.Address)
+	}
+
+	return sr
 }
