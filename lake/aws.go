@@ -276,11 +276,11 @@ func updateAws(svc *ec2.EC2, gr *group, name, vpcID, groupID string) error {
 
 	log.Printf("group=%s creating new rules...", name)
 
-	countIn, errIn := addRulesAws(svc, gr.RulesIn, groupID)
+	countIn, errIn := addPermInAws(svc, gr.RulesIn, name, groupID)
 	if errIn != nil {
 		return errIn
 	}
-	countOut, errOut := addRulesAws(svc, gr.RulesOut, groupID)
+	countOut, errOut := addPermOutAws(svc, gr.RulesOut, name, groupID)
 	if errOut != nil {
 		return errOut
 	}
@@ -320,13 +320,73 @@ func delPermOutAws(svc *ec2.EC2, sg ec2.SecurityGroup) error {
 	return err
 }
 
-func addRulesAws(svc *ec2.EC2, ruleList []rule, groupID string) (int, error) {
+func permFromRules(ruleList []rule) ([]ec2.IpPermission, int) {
+	var permissions []ec2.IpPermission
 	var count int
 
-	//for _, r := range ruleList {
-	//}
+	for _, r := range ruleList {
+		if len(r.Blocks) < 1 && len(r.BlocksV6) < 1 {
+			continue
+		}
+		perm := ec2.IpPermission{
+			IpProtocol: aws.String(r.Protocol),
+			FromPort:   aws.Int64(r.PortFirst),
+			ToPort:     aws.Int64(r.PortLast),
+		}
+		for _, b := range r.Blocks {
+			perm.IpRanges = append(perm.IpRanges, ec2.IpRange{
+				CidrIp:      aws.String(b.Address),
+				Description: aws.String(b.AwsDescription),
+			})
+			count++
+		}
+		for _, b := range r.BlocksV6 {
+			perm.Ipv6Ranges = append(perm.Ipv6Ranges, ec2.Ipv6Range{
+				CidrIpv6:    aws.String(b.Address),
+				Description: aws.String(b.AwsDescription),
+			})
+			count++
+		}
+		permissions = append(permissions, perm)
+	}
 
-	return count, nil
+	return permissions, count
+}
+
+func addPermInAws(svc *ec2.EC2, ruleList []rule, name, groupID string) (int, error) {
+
+	permissions, count := permFromRules(ruleList)
+
+	if count < 1 {
+		return count, nil
+	}
+
+	input := ec2.AuthorizeSecurityGroupIngressInput{
+		IpPermissions: permissions,
+		GroupId:       aws.String(groupID),
+	}
+	req := svc.AuthorizeSecurityGroupIngressRequest(&input)
+	_, err := req.Send()
+
+	return count, err
+}
+
+func addPermOutAws(svc *ec2.EC2, ruleList []rule, name, groupID string) (int, error) {
+
+	permissions, count := permFromRules(ruleList)
+
+	if count < 1 {
+		return count, nil
+	}
+
+	input := ec2.AuthorizeSecurityGroupEgressInput{
+		IpPermissions: permissions,
+		GroupId:       aws.String(groupID),
+	}
+	req := svc.AuthorizeSecurityGroupEgressRequest(&input)
+	_, err := req.Send()
+
+	return count, err
 }
 
 func createAws(svc *ec2.EC2, gr *group, name, vpcID string) error {
