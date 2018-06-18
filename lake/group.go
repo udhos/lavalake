@@ -36,6 +36,7 @@ type block struct {
 	Address        string
 	AwsDescription string // aws-only
 	AzurePush      string // azure-only
+	AzureSingle    bool   // azure-only
 }
 
 func groupFromStdin(caller, name string, gr *group) error {
