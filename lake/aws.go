@@ -213,27 +213,129 @@ func pushAws(me, cmd, name, vpcID string) error {
 
 	if count < 1 {
 		log.Printf("%s: group=%s vpc-id=%s not found", me, name, vpcID)
-		return createAws(svc, name, vpcID, gr.Description)
+		return createAws(svc, &gr, name, vpcID)
 	}
 
 	sg := out.SecurityGroups[0]
 
-	return updateAws(svc, name, aws.StringValue(sg.GroupId))
+	return updateAws(svc, &gr, name, vpcID, aws.StringValue(sg.GroupId))
 }
 
-func updateAws(svc *ec2.EC2, name, groupID string) error {
+func updateAws(svc *ec2.EC2, gr *group, name, vpcID, groupID string) error {
 	log.Printf("updating existing group=%s group-id=%s", name, groupID)
-	log.Printf("updateAws: FIXME WRITEME group=%s group-id=%s", name, groupID)
+
+	filterName := ec2.Filter{
+		Name:   aws.String("group-name"),
+		Values: []string{name},
+	}
+
+	filterVpc := ec2.Filter{
+		Name:   aws.String("vpc-id"),
+		Values: []string{vpcID},
+	}
+
+	input := ec2.DescribeSecurityGroupsInput{
+		Filters: []ec2.Filter{filterName, filterVpc},
+	}
+
+	req := svc.DescribeSecurityGroupsRequest(&input)
+
+	out, errSend := req.Send()
+	if errSend != nil {
+		return errSend
+	}
+
+	count := len(out.SecurityGroups)
+	log.Printf("security groups: %d", count)
+
+	if count < 1 {
+		return fmt.Errorf("no security group found")
+	}
+
+	if count > 1 {
+		return fmt.Errorf("more than one security group found")
+	}
+
+	sg := out.SecurityGroups[0]
+
+	if groupID != aws.StringValue(sg.GroupId) {
+		return fmt.Errorf("wrong groupID")
+	}
+
+	log.Printf("group=%s deleting existing %d ingress rules...", name, len(sg.IpPermissions))
+	if errDelIn := delPermInAws(svc, sg); errDelIn != nil {
+		return errDelIn
+	}
+	log.Printf("group=%s deleting existing %d ingress rules...done", name, len(sg.IpPermissions))
+
+	log.Printf("group=%s deleting existing %d egress rules...", name, len(sg.IpPermissionsEgress))
+	if errDelIn := delPermOutAws(svc, sg); errDelIn != nil {
+		return errDelIn
+	}
+	log.Printf("group=%s deleting existing %d egress rules...done", name, len(sg.IpPermissionsEgress))
+
+	log.Printf("group=%s creating new rules...", name)
+
+	countIn, errIn := addRulesAws(svc, gr.RulesIn, groupID)
+	if errIn != nil {
+		return errIn
+	}
+	countOut, errOut := addRulesAws(svc, gr.RulesOut, groupID)
+	if errOut != nil {
+		return errOut
+	}
+
+	log.Printf("group=%s creating new rules...done (%d rules)", name, countIn+countOut)
+
 	return nil
 }
 
-func createAws(svc *ec2.EC2, name, vpcID, description string) error {
+func delPermInAws(svc *ec2.EC2, sg ec2.SecurityGroup) error {
+
+	if len(sg.IpPermissions) < 1 {
+		return nil
+	}
+
+	input := ec2.RevokeSecurityGroupIngressInput{
+		IpPermissions: sg.IpPermissions,
+		GroupId:       sg.GroupId,
+	}
+	req := svc.RevokeSecurityGroupIngressRequest(&input)
+	_, err := req.Send()
+	return err
+}
+
+func delPermOutAws(svc *ec2.EC2, sg ec2.SecurityGroup) error {
+
+	if len(sg.IpPermissionsEgress) < 1 {
+		return nil
+	}
+
+	input := ec2.RevokeSecurityGroupEgressInput{
+		IpPermissions: sg.IpPermissionsEgress,
+		GroupId:       sg.GroupId,
+	}
+	req := svc.RevokeSecurityGroupEgressRequest(&input)
+	_, err := req.Send()
+	return err
+}
+
+func addRulesAws(svc *ec2.EC2, ruleList []rule, groupID string) (int, error) {
+	var count int
+
+	//for _, r := range ruleList {
+	//}
+
+	return count, nil
+}
+
+func createAws(svc *ec2.EC2, gr *group, name, vpcID string) error {
 	log.Printf("creating new group=%s vpc-id=%s", name, vpcID)
 
 	input := ec2.CreateSecurityGroupInput{
-		Description: aws.String(description),
 		GroupName:   aws.String(name),
 		VpcId:       aws.String(vpcID),
+		Description: aws.String(gr.Description),
 	}
 
 	req := svc.CreateSecurityGroupRequest(&input)
@@ -246,5 +348,5 @@ func createAws(svc *ec2.EC2, name, vpcID, description string) error {
 
 	log.Printf("created new group=%s vpc-id=%s: group-id=%s", name, vpcID, groupID)
 
-	return updateAws(svc, name, groupID)
+	return updateAws(svc, gr, name, vpcID, groupID)
 }
