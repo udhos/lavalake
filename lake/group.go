@@ -17,12 +17,12 @@ type group struct {
 }
 
 type rule struct {
-	AzurePriority              int32    // !aws
-	AzureName                  string   // !aws
-	AzureDeny                  bool     // !aws
-	AzureDescription           string   // !aws
-	AzureSourcePortRanges      []string // !aws
-	AzureSourceAddressPrefixes []string // !aws
+	AzurePriority              int32    // azure-only
+	AzureName                  string   // azure-only
+	AzureDeny                  bool     // azure-only
+	AzureDescription           string   // azure-only
+	AzureSourcePortRanges      []string // azure-only
+	AzureSourceAddressPrefixes []string // azure-only
 	Protocol                   string
 	PortFirst                  int64
 	PortLast                   int64
@@ -32,7 +32,7 @@ type rule struct {
 
 type block struct {
 	Address        string
-	AwsDescription string // !azure
+	AwsDescription string // aws-only
 }
 
 func groupFromStdin(caller, name string, gr *group) error {
