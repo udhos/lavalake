@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -49,6 +50,10 @@ func groupFromStdin(caller, name string, gr *group) error {
 	return nil
 }
 
-func (g *group) Dump() ([]byte, error) {
-	return yaml.Marshal(g)
+func (g *group) output() {
+	buf, errDump := yaml.Marshal(g)
+	if errDump != nil {
+		log.Printf("output: %v", errDump)
+	}
+	fmt.Printf(string(buf))
 }

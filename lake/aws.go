@@ -124,11 +124,7 @@ func pullAws(me, cmd, name, vpcID string) error {
 	gr.RulesIn = scanPerm(name, sg.IpPermissions)
 	gr.RulesOut = scanPerm(name, sg.IpPermissionsEgress)
 
-	buf, errDump := gr.Dump()
-	if errDump != nil {
-		return errDump
-	}
-	fmt.Printf(string(buf))
+	gr.output()
 
 	return nil
 }

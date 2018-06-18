@@ -136,11 +136,7 @@ func pullAzure(me, cmd, name, resourceGroup string) error {
 		}
 	}
 
-	buf, errDump := gr.Dump()
-	if errDump != nil {
-		return errDump
-	}
-	fmt.Printf(string(buf))
+	gr.output()
 
 	return nil
 }
