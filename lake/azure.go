@@ -177,12 +177,20 @@ func visitDstPortRange(gr *group, sr network.SecurityRule, dstPortRange string) 
 	r.AzurePriority = unptrInt32(prop.Priority)
 	r.AzureDeny = prop.Access == network.SecurityRuleAccessDeny
 
-	r.AzureSourcePortRanges = []string{unptr(prop.SourcePortRange)}
+	log.Printf("SourcePortRange = %v", unptr(prop.SourcePortRange))
+	log.Printf("SourcePortRanges = %v", *prop.SourcePortRanges)
+
+	r.AzureSourcePortRange = unptr(prop.SourcePortRange)
+
 	for _, src := range *prop.SourcePortRanges {
 		r.AzureSourcePortRanges = append(r.AzureSourcePortRanges, src)
 	}
 
-	r.AzureSourceAddressPrefixes = []string{unptr(prop.SourceAddressPrefix)}
+	log.Printf("SourceAddressPrefix = %v", unptr(prop.SourceAddressPrefix))
+	log.Printf("SourceAddressPrefixes = %v", *prop.SourceAddressPrefixes)
+
+	r.AzureSourceAddressPrefix = unptr(prop.SourceAddressPrefix)
+
 	for _, src := range *prop.SourceAddressPrefixes {
 		r.AzureSourceAddressPrefixes = append(r.AzureSourceAddressPrefixes, src)
 	}
@@ -214,7 +222,7 @@ func visitDstPortRange(gr *group, sr network.SecurityRule, dstPortRange string) 
 func visitDstPrefix(r *rule, prefix, magicDefault string) {
 
 	if prefix == magicDefault {
-		log.Printf("replacing magicDefault='%s' with 0.0.0.0/0 and ::/0", magicDefault)
+		log.Printf("visitDstPrefix: replacing magicDefault='%s' with 0.0.0.0/0 and ::/0", magicDefault)
 		prefixAdd(r, "0.0.0.0/0", "*", "<skip>")
 		prefixAdd(r, "::/0", "*", "<skip>")
 		return
@@ -361,7 +369,9 @@ func securityRuleFromRule(r rule, direction network.SecurityRuleDirection) netwo
 		Protocol:                   network.SecurityRuleProtocol(r.Protocol),
 		Direction:                  direction,
 		DestinationPortRanges:      &dstPortRanges,
+		SourcePortRange:            to.StringPtr(r.AzureSourcePortRange),
 		SourcePortRanges:           &r.AzureSourcePortRanges,
+		SourceAddressPrefix:        to.StringPtr(r.AzureSourceAddressPrefix),
 		SourceAddressPrefixes:      &r.AzureSourceAddressPrefixes,
 		Priority:                   to.Int32Ptr(r.AzurePriority),
 		DestinationAddressPrefixes: &dstPrefixes,

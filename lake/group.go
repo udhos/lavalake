@@ -21,7 +21,9 @@ type rule struct {
 	AzureName                  string   // azure-only
 	AzureDeny                  bool     // azure-only
 	AzureDescription           string   // azure-only
+	AzureSourcePortRange       string   // azure-only
 	AzureSourcePortRanges      []string // azure-only
+	AzureSourceAddressPrefix   string   // azure-only
 	AzureSourceAddressPrefixes []string // azure-only
 	Protocol                   string
 	PortFirst                  int64
