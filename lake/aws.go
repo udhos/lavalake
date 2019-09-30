@@ -141,7 +141,7 @@ func scanPerm(name string, permissions []ec2.IpPermission) []rule {
 
 		proto := aws.StringValue(perm.IpProtocol)
 		if proto == "-1" {
-			log.Printf("replacing protocol='-1' with empty string")
+			log.Printf("scanPerm: replacing protocol='-1' with empty string")
 			proto = ""
 		}
 
@@ -283,13 +283,9 @@ func updateAws(svc *ec2.Client, gr *group, name, vpcID, groupID string) error {
 		return fmt.Errorf("addPermInAws: %v", errIn)
 	}
 
-	var countOut int
-	var errOut error
-	if countOutDel > 0 {
-		countOut, errOut = addPermOutAws(svc, gr.RulesOut, name, groupID)
-		if errOut != nil {
-			return fmt.Errorf("addPermOutAws: %v", errOut)
-		}
+	countOut, errOut := addPermOutAws(svc, gr.RulesOut, name, groupID)
+	if errOut != nil {
+		return fmt.Errorf("addPermOutAws: %v", errOut)
 	}
 
 	log.Printf("group=%s creating new rules...done (%d rules)", name, countIn+countOut)
@@ -343,8 +339,13 @@ func permFromRules(ruleList []rule) ([]ec2.IpPermission, int) {
 		if len(r.Blocks) < 1 && len(r.BlocksV6) < 1 {
 			continue
 		}
+		proto := r.Protocol
+		if proto == "" {
+			proto = "-1"
+			log.Printf("permFromRules: replacing protocol='%s' with '%s'", r.Protocol, proto)
+		}
 		perm := ec2.IpPermission{
-			IpProtocol: aws.String(r.Protocol),
+			IpProtocol: aws.String(proto),
 			FromPort:   aws.Int64(r.PortFirst),
 			ToPort:     aws.Int64(r.PortLast),
 		}
@@ -372,6 +373,8 @@ func addPermInAws(svc *ec2.Client, ruleList []rule, name, groupID string) (int, 
 
 	permissions, count := permFromRules(ruleList)
 
+	log.Printf("addPermInAws: count=%d", count)
+
 	if count < 1 {
 		return count, nil
 	}
@@ -389,6 +392,8 @@ func addPermInAws(svc *ec2.Client, ruleList []rule, name, groupID string) (int, 
 func addPermOutAws(svc *ec2.Client, ruleList []rule, name, groupID string) (int, error) {
 
 	permissions, count := permFromRules(ruleList)
+
+	log.Printf("addPermOutAws: count=%d", count)
 
 	if count < 1 {
 		return count, nil
