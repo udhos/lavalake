@@ -280,11 +280,16 @@ func updateAws(svc *ec2.Client, gr *group, name, vpcID, groupID string) error {
 
 	countIn, errIn := addPermInAws(svc, gr.RulesIn, name, groupID)
 	if errIn != nil {
-		return errIn
+		return fmt.Errorf("addPermInAws: %v", errIn)
 	}
-	countOut, errOut := addPermOutAws(svc, gr.RulesOut, name, groupID)
-	if errOut != nil {
-		return errOut
+
+	var countOut int
+	var errOut error
+	if countOutDel > 0 {
+		countOut, errOut = addPermOutAws(svc, gr.RulesOut, name, groupID)
+		if errOut != nil {
+			return fmt.Errorf("addPermOutAws: %v", errOut)
+		}
 	}
 
 	log.Printf("group=%s creating new rules...done (%d rules)", name, countIn+countOut)
