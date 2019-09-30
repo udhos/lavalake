@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -59,7 +60,7 @@ func listAws(me, cmd, vpcID string) error {
 
 	req := svc.DescribeSecurityGroupsRequest(&input)
 
-	out, errSend := req.Send()
+	out, errSend := req.Send(context.TODO())
 	if errSend != nil {
 		return errSend
 	}
@@ -99,7 +100,7 @@ func pullAws(me, cmd, name, vpcID string) error {
 
 	req := svc.DescribeSecurityGroupsRequest(&input)
 
-	out, errSend := req.Send()
+	out, errSend := req.Send(context.TODO())
 	if errSend != nil {
 		return errSend
 	}
@@ -200,7 +201,7 @@ func pushAws(me, cmd, name, vpcID string) error {
 
 	req := svc.DescribeSecurityGroupsRequest(&input)
 
-	out, errSend := req.Send()
+	out, errSend := req.Send(context.TODO())
 	if errSend != nil {
 		return errSend
 	}
@@ -221,7 +222,7 @@ func pushAws(me, cmd, name, vpcID string) error {
 	return updateAws(svc, &gr, name, vpcID, aws.StringValue(sg.GroupId))
 }
 
-func updateAws(svc *ec2.EC2, gr *group, name, vpcID, groupID string) error {
+func updateAws(svc *ec2.Client, gr *group, name, vpcID, groupID string) error {
 	log.Printf("updating existing group=%s group-id=%s", name, groupID)
 
 	filterName := ec2.Filter{
@@ -240,7 +241,7 @@ func updateAws(svc *ec2.EC2, gr *group, name, vpcID, groupID string) error {
 
 	req := svc.DescribeSecurityGroupsRequest(&input)
 
-	out, errSend := req.Send()
+	out, errSend := req.Send(context.TODO())
 	if errSend != nil {
 		return errSend
 	}
@@ -291,7 +292,7 @@ func updateAws(svc *ec2.EC2, gr *group, name, vpcID, groupID string) error {
 	return nil
 }
 
-func delPermInAws(svc *ec2.EC2, sg ec2.SecurityGroup) error {
+func delPermInAws(svc *ec2.Client, sg ec2.SecurityGroup) error {
 
 	if len(sg.IpPermissions) < 1 {
 		return nil
@@ -302,11 +303,11 @@ func delPermInAws(svc *ec2.EC2, sg ec2.SecurityGroup) error {
 		GroupId:       sg.GroupId,
 	}
 	req := svc.RevokeSecurityGroupIngressRequest(&input)
-	_, err := req.Send()
+	_, err := req.Send(context.TODO())
 	return err
 }
 
-func delPermOutAws(svc *ec2.EC2, sg ec2.SecurityGroup) error {
+func delPermOutAws(svc *ec2.Client, sg ec2.SecurityGroup) error {
 
 	if len(sg.IpPermissionsEgress) < 1 {
 		return nil
@@ -317,7 +318,7 @@ func delPermOutAws(svc *ec2.EC2, sg ec2.SecurityGroup) error {
 		GroupId:       sg.GroupId,
 	}
 	req := svc.RevokeSecurityGroupEgressRequest(&input)
-	_, err := req.Send()
+	_, err := req.Send(context.TODO())
 	return err
 }
 
@@ -362,7 +363,7 @@ func permFromRules(ruleList []rule) ([]ec2.IpPermission, int) {
 	return permissions, count
 }
 
-func addPermInAws(svc *ec2.EC2, ruleList []rule, name, groupID string) (int, error) {
+func addPermInAws(svc *ec2.Client, ruleList []rule, name, groupID string) (int, error) {
 
 	permissions, count := permFromRules(ruleList)
 
@@ -375,12 +376,12 @@ func addPermInAws(svc *ec2.EC2, ruleList []rule, name, groupID string) (int, err
 		GroupId:       aws.String(groupID),
 	}
 	req := svc.AuthorizeSecurityGroupIngressRequest(&input)
-	_, err := req.Send()
+	_, err := req.Send(context.TODO())
 
 	return count, err
 }
 
-func addPermOutAws(svc *ec2.EC2, ruleList []rule, name, groupID string) (int, error) {
+func addPermOutAws(svc *ec2.Client, ruleList []rule, name, groupID string) (int, error) {
 
 	permissions, count := permFromRules(ruleList)
 
@@ -393,12 +394,12 @@ func addPermOutAws(svc *ec2.EC2, ruleList []rule, name, groupID string) (int, er
 		GroupId:       aws.String(groupID),
 	}
 	req := svc.AuthorizeSecurityGroupEgressRequest(&input)
-	_, err := req.Send()
+	_, err := req.Send(context.TODO())
 
 	return count, err
 }
 
-func createAws(svc *ec2.EC2, gr *group, name, vpcID string) error {
+func createAws(svc *ec2.Client, gr *group, name, vpcID string) error {
 	log.Printf("creating new group=%s vpc-id=%s", name, vpcID)
 
 	input := ec2.CreateSecurityGroupInput{
@@ -408,7 +409,7 @@ func createAws(svc *ec2.EC2, gr *group, name, vpcID string) error {
 	}
 
 	req := svc.CreateSecurityGroupRequest(&input)
-	resp, errCreate := req.Send()
+	resp, errCreate := req.Send(context.TODO())
 	if errCreate != nil {
 		return errCreate
 	}

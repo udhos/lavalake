@@ -386,7 +386,7 @@ func securityRuleFromRule(r rule, direction network.SecurityRuleDirection) netwo
 	}
 
 	sr := network.SecurityRule{
-		Name: to.StringPtr(r.AzureName),
+		Name:                         to.StringPtr(r.AzureName),
 		SecurityRulePropertiesFormat: format,
 	}
 

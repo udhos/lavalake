@@ -13,9 +13,9 @@ Manage security groups uniformly across multiple cloud providers.
 Install
 =======
 
-    go get github.com/udhos/lavalake
-    cd ~/go/src/github.com/udhos/lavalake
-    ./build.sh
+    git clone https://github.com/udhos/lavalake
+    cd lavalake
+    GO111MODULE=on go install ./lake
 
 Examples - Openstack
 ====================

@@ -225,7 +225,7 @@ func updateOpenstack(client *gophercloud.ServiceClient, gr *group, me, name, gro
 	log.Printf("%s: updating existing group=%s group-id=%s", me, name, groupID)
 
 	updateOpts := groups.UpdateOpts{
-		Description: gr.Description,
+		Description: &gr.Description,
 	}
 
 	if _, errUpdateDesc := groups.Update(client, groupID, updateOpts).Extract(); errUpdateDesc != nil {
