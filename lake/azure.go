@@ -175,17 +175,29 @@ func portValue(port string) int64 {
 	return int64(p)
 }
 
+func azureProtoPull(p string) string {
+	if p == "*" {
+		log.Printf("azureProtoPull: replacing protocol='*' with empty string")
+		return ""
+	}
+	return p
+}
+
+func azureProtoPush(p string) string {
+	if p == "" {
+		log.Printf("azureProtoPush: replacing empty protocol with '*'")
+		return "*"
+	}
+	return p
+}
+
 func visitDstPortRange(gr *group, sr network.SecurityRule, dstPortRange string) {
 	var r rule
 	r.AzureName = unptr(sr.Name)
 
 	prop := sr.SecurityRulePropertiesFormat
 
-	r.Protocol = string(prop.Protocol)
-	if r.Protocol == "*" {
-		log.Printf("replacing protocol='*' with empty string")
-		r.Protocol = ""
-	}
+	r.Protocol = azureProtoPull(string(prop.Protocol))
 
 	var desc string
 	if nil != prop.Description {
@@ -319,7 +331,7 @@ func pushAzure(me, cmd, name, resourceGroup, location string) error {
 
 	sg, errGet := nsgClient.Get(context.Background(), resourceGroup, name, "")
 	if errGet != nil {
-		log.Printf("group=%s not found: %v", name, errGet)
+		log.Printf("pushAzure: group=%s not found: %v", name, errGet)
 		return createAzure(nsgClient, name, resourceGroup, &gr, location)
 	}
 
@@ -385,7 +397,7 @@ func securityRuleFromRule(r rule, direction network.SecurityRuleDirection) netwo
 
 	format := &network.SecurityRulePropertiesFormat{
 		Description:                to.StringPtr(r.AzureDescription),
-		Protocol:                   network.SecurityRuleProtocol(r.Protocol),
+		Protocol:                   network.SecurityRuleProtocol(azureProtoPush(r.Protocol)),
 		Direction:                  direction,
 		DestinationPortRanges:      &dstPortRanges,
 		SourcePortRange:            to.StringPtr(r.AzureSourcePortRange),
