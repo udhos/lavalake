@@ -130,6 +130,22 @@ func pullAws(me, cmd, name, vpcID string) error {
 	return nil
 }
 
+func awsProtoPull(p string) string {
+		if p == "-1" {
+			log.Printf("awsProtoPull: replacing protocol='-1' with empty string")
+			return ""
+		}
+	return p
+}
+
+func awsProtoPush(p string) string {
+		if p == "" {
+			log.Printf("awsProtoPush: replacing empty protocol with '-1'")
+			return "-1"
+		}
+	return p
+}
+
 func scanPerm(name string, permissions []ec2.IpPermission) []rule {
 
 	var rules []rule
@@ -139,11 +155,7 @@ func scanPerm(name string, permissions []ec2.IpPermission) []rule {
 			log.Printf("unsupported: this group=%s references another group=%s", name, aws.StringValue(other.GroupId))
 		}
 
-		proto := aws.StringValue(perm.IpProtocol)
-		if proto == "-1" {
-			log.Printf("scanPerm: replacing protocol='-1' with empty string")
-			proto = ""
-		}
+		proto := awsProtoPull(aws.StringValue(perm.IpProtocol))
 
 		r := rule{
 			Protocol:  proto,
@@ -339,11 +351,7 @@ func permFromRules(ruleList []rule) ([]ec2.IpPermission, int) {
 		if len(r.Blocks) < 1 && len(r.BlocksV6) < 1 {
 			continue
 		}
-		proto := r.Protocol
-		if proto == "" {
-			proto = "-1"
-			log.Printf("permFromRules: replacing protocol='%s' with '%s'", r.Protocol, proto)
-		}
+		proto := awsProtoPush(r.Protocol)
 		perm := ec2.IpPermission{
 			IpProtocol: aws.String(proto),
 			FromPort:   aws.Int64(r.PortFirst),
@@ -410,18 +418,26 @@ func addPermOutAws(svc *ec2.Client, ruleList []rule, name, groupID string) (int,
 }
 
 func createAws(svc *ec2.Client, gr *group, name, vpcID string) error {
-	log.Printf("creating new group=%s vpc-id=%s", name, vpcID)
+	log.Printf("createAws: creating new group=%s vpc-id=%s", name, vpcID)
+
+	var desc string
+	if gr.Description != "" {
+		desc = gr.Description
+	} else {
+		desc = name
+		log.Printf("createAws: using group name as description: %s", desc)
+	}
 
 	input := ec2.CreateSecurityGroupInput{
 		GroupName:   aws.String(name),
 		VpcId:       aws.String(vpcID),
-		Description: aws.String(gr.Description),
+		Description: aws.String(desc),
 	}
 
 	req := svc.CreateSecurityGroupRequest(&input)
 	resp, errCreate := req.Send(context.TODO())
 	if errCreate != nil {
-		return errCreate
+		return fmt.Errorf("createAws: %v", errCreate)
 	}
 
 	groupID := aws.StringValue(resp.GroupId)
