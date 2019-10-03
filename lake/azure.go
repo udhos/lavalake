@@ -217,13 +217,10 @@ func visitDstPortRange(gr *group, sr network.SecurityRule, dstPortRange string) 
 		r.AzureSourcePortRanges = append(r.AzureSourcePortRanges, src)
 	}
 
-	log.Printf("SourceAddressPrefix = %v", unptr(prop.SourceAddressPrefix))
-	log.Printf("SourceAddressPrefixes = %v", *prop.SourceAddressPrefixes)
+	r.AzureDestinationAddressPrefix = unptr(prop.DestinationAddressPrefix)
 
-	r.AzureSourceAddressPrefix = unptr(prop.SourceAddressPrefix)
-
-	for _, src := range *prop.SourceAddressPrefixes {
-		r.AzureSourceAddressPrefixes = append(r.AzureSourceAddressPrefixes, src)
+	for _, src := range *prop.DestinationAddressPrefixes {
+		r.AzureDestinationAddressPrefixes = append(r.AzureDestinationAddressPrefixes, src)
 	}
 
 	ports := strings.Split(dstPortRange, "-")
@@ -235,11 +232,11 @@ func visitDstPortRange(gr *group, sr network.SecurityRule, dstPortRange string) 
 		r.PortLast = portValue(ports[1])
 	}
 
-	if nil != prop.DestinationAddressPrefix {
-		visitDstPrefix(&r, unptr(prop.DestinationAddressPrefix), "*", true)
+	if nil != prop.SourceAddressPrefix {
+		visitSrcPrefix(&r, unptr(prop.SourceAddressPrefix), "*", true)
 	}
-	for _, dst := range *prop.DestinationAddressPrefixes {
-		visitDstPrefix(&r, dst, "*", false)
+	for _, dst := range *prop.SourceAddressPrefixes {
+		visitSrcPrefix(&r, dst, "*", false)
 	}
 
 	if prop.Direction == network.SecurityRuleDirectionInbound {
@@ -250,10 +247,10 @@ func visitDstPortRange(gr *group, sr network.SecurityRule, dstPortRange string) 
 }
 
 // expand magic prefix to both IPv6 and IPv4
-func visitDstPrefix(r *rule, prefix, magicDefault string, azureSingle bool) {
+func visitSrcPrefix(r *rule, prefix, magicDefault string, azureSingle bool) {
 
 	if prefix == magicDefault {
-		log.Printf("visitDstPrefix: replacing magicDefault='%s' with 0.0.0.0/0 and ::/0", magicDefault)
+		log.Printf("visitSrcPrefix: replacing magicDefault='%s' with 0.0.0.0/0 and ::/0", magicDefault)
 		prefixAdd(r, "0.0.0.0/0", "*", "<skip>", azureSingle)
 		prefixAdd(r, "::/0", "*", "<skip>", azureSingle)
 		return
@@ -271,13 +268,13 @@ func prefixAdd(r *rule, prefix string, azurePush4, azurePush6 string, azureSingl
 }
 
 // expand magic prefix to IPv6 or IPv4
-func visitDstPrefixV(r *rule, prefix, magicDefault string, isV6 bool) {
+func visitSrcPrefixV(r *rule, prefix, magicDefault string, isV6 bool) {
 
 	if isV6 {
 		// IPv6
 		if prefix == magicDefault {
 			log.Printf("replacing magicDefault='%s' with ::/0", magicDefault)
-			visitDstPrefixV(r, "::/0", magicDefault, isV6)
+			visitSrcPrefixV(r, "::/0", magicDefault, isV6)
 			return
 		}
 
@@ -290,7 +287,7 @@ func visitDstPrefixV(r *rule, prefix, magicDefault string, isV6 bool) {
 
 	if prefix == magicDefault {
 		log.Printf("replacing magicDefault='%s' with 0.0.0.0/0", magicDefault)
-		visitDstPrefixV(r, "0.0.0.0/0", magicDefault, isV6)
+		visitSrcPrefixV(r, "0.0.0.0/0", magicDefault, isV6)
 		return
 	}
 
@@ -392,8 +389,8 @@ func securityRuleFromRule(r rule, direction network.SecurityRuleDirection) netwo
 
 	dstPortRanges := []string{fmt.Sprintf("%d-%d", r.PortFirst, r.PortLast)}
 
-	dstPrefixes := []string{}
-	var dstPrefixSingle string
+	srcPrefixes := []string{}
+	var srcPrefixSingle string
 
 	format := &network.SecurityRulePropertiesFormat{
 		Description:                to.StringPtr(r.AzureDescription),
@@ -402,11 +399,11 @@ func securityRuleFromRule(r rule, direction network.SecurityRuleDirection) netwo
 		DestinationPortRanges:      &dstPortRanges,
 		SourcePortRange:            to.StringPtr(r.AzureSourcePortRange),
 		SourcePortRanges:           &r.AzureSourcePortRanges,
-		SourceAddressPrefix:        to.StringPtr(r.AzureSourceAddressPrefix),
-		SourceAddressPrefixes:      &r.AzureSourceAddressPrefixes,
+		DestinationAddressPrefix:   to.StringPtr(r.AzureDestinationAddressPrefix),
+		DestinationAddressPrefixes: &r.AzureDestinationAddressPrefixes,
 		Priority:                   to.Int32Ptr(r.AzurePriority),
-		DestinationAddressPrefix:   &dstPrefixSingle,
-		DestinationAddressPrefixes: &dstPrefixes,
+		SourceAddressPrefix:        &srcPrefixSingle,
+		SourceAddressPrefixes:      &srcPrefixes,
 	}
 
 	if r.AzureDeny {
@@ -420,19 +417,16 @@ func securityRuleFromRule(r rule, direction network.SecurityRuleDirection) netwo
 		SecurityRulePropertiesFormat: format,
 	}
 
-	getDstPrefixesAzure(&dstPrefixSingle, &dstPrefixes, r.Blocks)
-	getDstPrefixesAzure(&dstPrefixSingle, &dstPrefixes, r.BlocksV6)
-
-	log.Printf("DestinationAddressPrefix = %v", *sr.SecurityRulePropertiesFormat.DestinationAddressPrefix)
-	log.Printf("DestinationAddressPrefixes = %v", *sr.SecurityRulePropertiesFormat.DestinationAddressPrefixes)
+	getSrcPrefixesAzure(&srcPrefixSingle, &srcPrefixes, r.Blocks)
+	getSrcPrefixesAzure(&srcPrefixSingle, &srcPrefixes, r.BlocksV6)
 
 	return sr
 }
 
-func getDstPrefixesAzure(dstPrefixSingle *string, dstPrefixes *[]string, blocks []block) {
+func getSrcPrefixesAzure(srcPrefixSingle *string, srcPrefixes *[]string, blocks []block) {
 	for _, b := range blocks {
 		address := b.Address
-		log.Printf("getDstPrefixesAzure: address=%s azurePush=[%s]", address, b.AzurePush)
+		log.Printf("getSrcPrefixesAzure: address=%s azurePush=[%s]", address, b.AzurePush)
 		if b.AzurePush == "<skip>" {
 			//log.Printf("dst address=%s azurePush=[%s] - skipping address", address, b.AzurePush)
 			continue // don't push
@@ -441,11 +435,11 @@ func getDstPrefixesAzure(dstPrefixSingle *string, dstPrefixes *[]string, blocks 
 			//log.Printf("dst address=%s azurePush=[%s] - using azurePush", address, b.AzurePush)
 			address = b.AzurePush
 		}
-		log.Printf("getDstPrefixesAzure: azureSingle=%v address=%s", b.AzureSingle, address)
+		log.Printf("getSrcPrefixesAzure: azureSingle=%v address=%s", b.AzureSingle, address)
 		if b.AzureSingle {
-			*dstPrefixSingle = address
+			*srcPrefixSingle = address
 		} else {
-			*dstPrefixes = append(*dstPrefixes, address)
+			*srcPrefixes = append(*srcPrefixes, address)
 		}
 	}
 }
