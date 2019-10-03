@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	//"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2019-03-01/resources"
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2018-04-01/network"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/Azure/go-autorest/autorest/to"
@@ -70,13 +71,32 @@ func listAzure(me, cmd string) error {
 		return fmt.Errorf("missing env var AZURE_SUBSCRIPTION_ID")
 	}
 
-	nsgClient := network.NewSecurityGroupsClient(subscription)
 	authorizer, errAuth := auth.NewAuthorizerFromEnvironment()
-
 	if errAuth != nil {
 		return errAuth
 	}
 
+	/*
+		groupsClient := resources.NewGroupsClient(subscription)
+		groupsClient.Authorizer = authorizer
+
+		itRg, errRgList := groupsClient.ListComplete(context.Background(), "", nil)
+		if errRgList != nil {
+			return errRgList
+		}
+
+		tableRg := map[string]string{}
+
+		for ; itRg.NotDone(); itRg.Next() {
+			rg := itRg.Value()
+			rgName := unptr(rg.Name)
+			rgId := unptr(rg.ID)
+			tableRg[rgId] = rgName
+			log.Printf("resource group: name=[%s] id=[%s]", rgName, rgId)
+		}
+	*/
+
+	nsgClient := network.NewSecurityGroupsClient(subscription)
 	nsgClient.Authorizer = authorizer
 
 	it, errList := nsgClient.ListAllComplete(context.Background())
@@ -86,7 +106,7 @@ func listAzure(me, cmd string) error {
 
 	for ; it.NotDone(); it.Next() {
 		nsg := it.Value()
-		fmt.Printf("name=%s resource-group=%s location=%s\n", unptr(nsg.Name), unptr(nsg.SecurityGroupPropertiesFormat.ResourceGUID), unptr(nsg.Location))
+		fmt.Printf("name=%s location=%s\n", unptr(nsg.Name), unptr(nsg.Location))
 	}
 
 	return nil
@@ -115,13 +135,12 @@ func pullAzure(me, cmd, name, resourceGroup string) error {
 		return fmt.Errorf("missing env var AZURE_SUBSCRIPTION_ID")
 	}
 
-	nsgClient := network.NewSecurityGroupsClient(subscription)
 	authorizer, errAuth := auth.NewAuthorizerFromEnvironment()
-
 	if errAuth != nil {
 		return errAuth
 	}
 
+	nsgClient := network.NewSecurityGroupsClient(subscription)
 	nsgClient.Authorizer = authorizer
 
 	sg, errGet := nsgClient.Get(context.Background(), resourceGroup, name, "")
@@ -290,13 +309,12 @@ func pushAzure(me, cmd, name, resourceGroup, location string) error {
 		return fmt.Errorf("missing env var AZURE_SUBSCRIPTION_ID")
 	}
 
-	nsgClient := network.NewSecurityGroupsClient(subscription)
 	authorizer, errAuth := auth.NewAuthorizerFromEnvironment()
-
 	if errAuth != nil {
 		return errAuth
 	}
 
+	nsgClient := network.NewSecurityGroupsClient(subscription)
 	nsgClient.Authorizer = authorizer
 
 	sg, errGet := nsgClient.Get(context.Background(), resourceGroup, name, "")
