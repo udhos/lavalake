@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 )
@@ -9,11 +10,22 @@ func main() {
 	me := os.Args[0]
 
 	if len(os.Args) < 3 {
-		log.Printf("%s: insufficient arguments", me)
-		log.Printf("usage:   %s list|pull|push cloud [args]", me)
-		log.Printf("example: %s list           aws", me)
-		log.Printf("example: %s pull           aws   allow-http vpc-000 > allow-http.yaml", me)
-		log.Printf("example: %s push           aws   allow-http vpc-000 < allow-http.yaml", me)
+		fmt.Printf("%s: insufficient arguments\n", me)
+		fmt.Println()
+		fmt.Printf("usage:   %s list|pull|push cloud [args]\n", me)
+		fmt.Println()
+		fmt.Printf("example: %s list aws\n", me)
+		fmt.Printf("example: %s pull aws group1 vpc-id > group1.yaml\n", me)
+		fmt.Printf("example: %s push aws group2 vpc-id < group2.yaml\n", me)
+		fmt.Println()
+		fmt.Printf("example: %s list azure\n", me)
+		fmt.Printf("example: %s pull azure group1 resource-group-name > group1.yaml\n", me)
+		fmt.Printf("example: %s push azure group2 resource-group-name location < group1.yaml\n", me)
+		fmt.Println()
+		fmt.Printf("example: %s list openstack\n", me)
+		fmt.Printf("example: %s pull openstack group1 > group1.yaml\n", me)
+		fmt.Printf("example: %s push openstack group2 < group1.yaml\n", me)
+
 		os.Exit(1)
 	}
 
