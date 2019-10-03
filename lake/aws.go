@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
@@ -131,18 +132,18 @@ func pullAws(me, cmd, name, vpcID string) error {
 }
 
 func awsProtoPull(p string) string {
-		if p == "-1" {
-			log.Printf("awsProtoPull: replacing protocol='-1' with empty string")
-			return ""
-		}
+	if p == "-1" {
+		log.Printf("awsProtoPull: replacing protocol='-1' with empty string")
+		return ""
+	}
 	return p
 }
 
 func awsProtoPush(p string) string {
-		if p == "" {
-			log.Printf("awsProtoPush: replacing empty protocol with '-1'")
-			return "-1"
-		}
+	if p == "" {
+		log.Printf("awsProtoPush: replacing empty protocol with '-1'")
+		return "-1"
+	}
 	return p
 }
 
@@ -343,6 +344,22 @@ func countBlocks(permissions []ec2.IpPermission) int {
 	return count
 }
 
+func awsCidrPush(c string) string {
+	_, _, err := net.ParseCIDR(c)
+	if err == nil {
+		return c // good cidr
+	}
+	addr := net.ParseIP(c)
+	if addr == nil {
+		log.Printf("awsCidrPush: bad CIDR: [%s]", c)
+		return c
+	}
+	if addr.To4() == nil {
+		return c + "/128" // IPv6
+	}
+	return c + "/32" // IPv4
+}
+
 func permFromRules(ruleList []rule) ([]ec2.IpPermission, int) {
 	var permissions []ec2.IpPermission
 	var count int
@@ -359,14 +376,14 @@ func permFromRules(ruleList []rule) ([]ec2.IpPermission, int) {
 		}
 		for _, b := range r.Blocks {
 			perm.IpRanges = append(perm.IpRanges, ec2.IpRange{
-				CidrIp:      aws.String(b.Address),
+				CidrIp:      aws.String(awsCidrPush(b.Address)),
 				Description: aws.String(b.AwsDescription),
 			})
 			count++
 		}
 		for _, b := range r.BlocksV6 {
 			perm.Ipv6Ranges = append(perm.Ipv6Ranges, ec2.Ipv6Range{
-				CidrIpv6:    aws.String(b.Address),
+				CidrIpv6:    aws.String(awsCidrPush(b.Address)),
 				Description: aws.String(b.AwsDescription),
 			})
 			count++
