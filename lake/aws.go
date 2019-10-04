@@ -123,6 +123,11 @@ func pullAws(me, cmd, name, vpcID string) error {
 		Description: aws.StringValue(sg.Description),
 	}
 
+	if debug {
+		log.Printf("DEBUG pullAws: permissions IN: %v", sg.IpPermissions)
+		log.Printf("DEBUG pullAws: permissions OUT: %v", sg.IpPermissionsEgress)
+	}
+
 	gr.RulesIn = scanPerm(name, sg.IpPermissions)
 	gr.RulesOut = scanPerm(name, sg.IpPermissionsEgress)
 
@@ -410,8 +415,10 @@ func permFromRules(ruleList []rule) ([]ec2.IpPermission, int) {
 		permissions = append(permissions, perm)
 	}
 
-	log.Printf("permFromRule: rule: %v", ruleList)
-	log.Printf("permFromRule: perm: %v", permissions)
+	if debug {
+		log.Printf("DEBUG permFromRule: rule: %v", ruleList)
+		log.Printf("DEBUG permFromRule: perm: %v", permissions)
+	}
 
 	return permissions, count
 }

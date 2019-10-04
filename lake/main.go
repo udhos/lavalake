@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+var debug bool
+
 func main() {
 	me := os.Args[0]
 
@@ -28,6 +30,9 @@ func main() {
 
 		os.Exit(1)
 	}
+
+	debug = os.Getenv("DEBUG") != ""
+	log.Printf("DEBUG=[%s] debug=%v", os.Getenv("DEBUG"), debug)
 
 	cmd := os.Args[1]
 	cloud := os.Args[2]
