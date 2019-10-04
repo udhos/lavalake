@@ -364,10 +364,29 @@ func permFromRules(ruleList []rule) ([]ec2.IpPermission, int) {
 	var permissions []ec2.IpPermission
 	var count int
 
+	table := map[string]rule{}
+
+	// collapse multiple blocks within single shared proto/port rule
 	for _, r := range ruleList {
-		if len(r.Blocks) < 1 && len(r.BlocksV6) < 1 {
+		key := fmt.Sprintf("%s/%d/%d", r.Protocol, r.PortFirst, r.PortLast)
+		if rr, found := table[key]; found {
+			//log.Printf("permFromRules: collapse B: %s blocks: %d [%v]", key, len(r.Blocks)+len(r.BlocksV6), r.Blocks)
+
+			rr.Blocks = append(rr.Blocks, r.Blocks...)
+			rr.BlocksV6 = append(rr.BlocksV6, r.BlocksV6...)
+
+			table[key] = rr // write back
+
+			//log.Printf("permFromRules: collapse A: %s blocks: %d [%v]", key, len(rr.Blocks)+len(rr.BlocksV6), rr.Blocks)
+
 			continue
 		}
+		//log.Printf("permFromRules: create: %s blocks: %d [%v]", key, len(r.Blocks)+len(r.BlocksV6), r.Blocks)
+		table[key] = r // create
+	}
+
+	for _, r := range table {
+		//key := fmt.Sprintf("%s/%d/%d", r.Protocol, r.PortFirst, r.PortLast)
 		proto := awsProtoPush(r.Protocol)
 		perm := ec2.IpPermission{
 			IpProtocol: aws.String(proto),
@@ -391,6 +410,9 @@ func permFromRules(ruleList []rule) ([]ec2.IpPermission, int) {
 		permissions = append(permissions, perm)
 	}
 
+	log.Printf("permFromRule: rule: %v", ruleList)
+	log.Printf("permFromRule: perm: %v", permissions)
+
 	return permissions, count
 }
 
@@ -410,6 +432,10 @@ func addPermInAws(svc *ec2.Client, ruleList []rule, name, groupID string) (int, 
 	}
 	req := svc.AuthorizeSecurityGroupIngressRequest(&input)
 	_, err := req.Send(context.TODO())
+
+	if err != nil {
+		log.Printf("addPermInAws: %v: %v", err, permissions)
+	}
 
 	return count, err
 }

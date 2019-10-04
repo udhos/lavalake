@@ -191,6 +191,32 @@ func azureProtoPush(p string) string {
 	return p
 }
 
+func azurePortPull(p string) (int64, int64) {
+	if p == "*" {
+		log.Printf("azurePortPull: replacing port='*' with 0-65535")
+		return 0, 65535
+	}
+	ports := strings.Split(p, "-")
+	if len(ports) < 2 {
+		v := portValue(ports[0])
+		return v, v
+	}
+
+	return portValue(ports[0]), portValue(ports[1])
+}
+
+func azurePortPush(first, last int64) string {
+	/*
+		if first == last {
+			return strconv.FormatInt(first, 10)
+		}
+		if first == 0 && last == 65535 {
+			return "*"
+		}
+	*/
+	return fmt.Sprintf("%d-%d", first, last)
+}
+
 func visitDstPortRange(gr *group, sr network.SecurityRule, dstPortRange string) {
 	var r rule
 	r.AzureName = unptr(sr.Name)
@@ -208,9 +234,6 @@ func visitDstPortRange(gr *group, sr network.SecurityRule, dstPortRange string) 
 	r.AzurePriority = unptrInt32(prop.Priority)
 	r.AzureDeny = prop.Access == network.SecurityRuleAccessDeny
 
-	log.Printf("SourcePortRange = %v", unptr(prop.SourcePortRange))
-	log.Printf("SourcePortRanges = %v", *prop.SourcePortRanges)
-
 	r.AzureSourcePortRange = unptr(prop.SourcePortRange)
 
 	for _, src := range *prop.SourcePortRanges {
@@ -223,14 +246,7 @@ func visitDstPortRange(gr *group, sr network.SecurityRule, dstPortRange string) 
 		r.AzureDestinationAddressPrefixes = append(r.AzureDestinationAddressPrefixes, src)
 	}
 
-	ports := strings.Split(dstPortRange, "-")
-	if len(ports) < 2 {
-		r.PortFirst = portValue(ports[0])
-		r.PortLast = r.PortFirst
-	} else {
-		r.PortFirst = portValue(ports[0])
-		r.PortLast = portValue(ports[1])
-	}
+	r.PortFirst, r.PortLast = azurePortPull(dstPortRange)
 
 	if nil != prop.SourceAddressPrefix {
 		visitSrcPrefix(&r, unptr(prop.SourceAddressPrefix), "*", true)
@@ -260,6 +276,7 @@ func visitSrcPrefix(r *rule, prefix, magicDefault string, azureSingle bool) {
 }
 
 func prefixAdd(r *rule, prefix string, azurePush4, azurePush6 string, azureSingle bool) {
+
 	if isPrefixV6(prefix) {
 		r.BlocksV6 = append(r.BlocksV6, block{Address: prefix, AzurePush: azurePush6, AzureSingle: azureSingle})
 	} else {
@@ -387,7 +404,8 @@ func networkSecurityGroupFromGroup(gr *group, location string) network.SecurityG
 
 func securityRuleFromRule(r rule, direction network.SecurityRuleDirection) network.SecurityRule {
 
-	dstPortRanges := []string{fmt.Sprintf("%d-%d", r.PortFirst, r.PortLast)}
+	//dstPortRanges := []string{fmt.Sprintf("%d-%d", r.PortFirst, r.PortLast)}
+	dstPortRanges := []string{azurePortPush(r.PortFirst, r.PortLast)}
 
 	srcPrefixes := []string{}
 	var srcPrefixSingle string
