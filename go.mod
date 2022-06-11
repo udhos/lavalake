@@ -9,5 +9,5 @@ require (
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v0.12.0
 	github.com/gophercloud/gophercloud v0.4.0
-	gopkg.in/yaml.v2 v2.2.3
+	gopkg.in/yaml.v2 v2.2.8
 )
