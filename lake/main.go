@@ -1,3 +1,4 @@
+// main implements the lake utility.
 package main
 
 import (
